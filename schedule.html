@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title id="pageTitle">PD 스케쥴</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800;900&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="backlink" href="index.html">‹ PD 목록</a>
+    <div class="brand">
+      <h1 id="pdName">스케쥴</h1>
+      <span class="tag-rec">REC</span>
+    </div>
+    <div class="sub" id="syncNote">데이터 불러오는 중…</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="calArea"><div class="empty">일정 불러오는 중…</div></div>
+
+  <div class="section-title"><h2>전체 일정</h2></div>
+  <div class="month-nav" id="monthNav"></div>
+  <div id="scheduleArea"></div>
+
+  <footer>
+    이 페이지는 정적 파일(data/*.json)만 읽어요. 일정이 바뀌면 그 json 파일을 새로 받아 덮어써야 반영돼요.
+  </footer>
+</div>
+
+<script>
+(function(){
+  var CATS = {
+    china:{label:'중국', hue:18},
+    japan:{label:'일본', hue:350},
+    korea:{label:'한국', hue:205},
+    global1:{label:'글로벌 1기', hue:262},
+    globalcareer:{label:'글로벌 커리어', hue:285},
+    album:{label:'AI 앨범 제작', hue:40},
+    jordan:{label:'조던쇼를 잡아라', hue:165},
+    hitmakers:{label:'히트메이커스 멜법', hue:130},
+    nova:{label:'노바 피드백', hue:0},
+    openclass:{label:'오픈 특강', hue:95}
+  };
+  var CAT_BASE = {china:'중국', japan:'일본', korea:'한국', global1:'글로벌', globalcareer:'글로벌커리어', album:'AI 앨범 제작', jordan:'조던쇼를 잡아라', hitmakers:'히트메이커스 멜법', nova:'노바', openclass:'오픈'};
+  function shortLabel(e){
+    var base = CAT_BASE[e.category] || e.category;
+    var m = /(\d+)\s*기/.exec(e.title);
+    return m ? base+' '+m[1]+'기' : base;
+  }
+  var DOW = ['일','월','화','수','목','금','토'];
+
+  var events = [];
+  var byDate = {};
+  var minYm = null, maxYm = null;
+  var curYm = null;
+  var selectedDate = null;
+
+  function pad(n){return String(n).length<2?'0'+n:String(n)}
+  function todayStr(){
+    var d = new Date();
+    return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  }
+  function dowOf(dateStr){
+    var p = dateStr.split('-').map(Number);
+    return new Date(p[0], p[1]-1, p[2]).getDay();
+  }
+  function fmtKDate(dateStr){
+    var p = dateStr.split('-').map(Number);
+    return p[1]+'월 '+p[2]+'일';
+  }
+  function daysInMonth(y,m){ return new Date(y, m, 0).getDate(); }
+  function shiftYm(ym, delta){
+    var y = parseInt(ym.slice(0,4),10), m = parseInt(ym.slice(5,7),10);
+    m += delta;
+    while(m>12){m-=12;y++;}
+    while(m<1){m+=12;y--;}
+    return y+'-'+pad(m);
+  }
+  function getParam(name){
+    var m = new RegExp('[?&]'+name+'=([^&]*)').exec(location.search);
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+
+  function tagHtml(category){
+    var cat = CATS[category] || {label:category, hue:0};
+    return '<span class="tagc" style="--h:'+cat.hue+'">'+cat.label+'</span>';
+  }
+
+  function dayDetailHtml(dateStr){
+    var dow = DOW[dowOf(dateStr)];
+    var dayEvents = byDate[dateStr] || [];
+    var blocking = dayEvents.filter(function(e){return e.blocks});
+    var pillCls = blocking.length ? 'busy' : 'free';
+    var pillText = blocking.length ? '일정 있음' : '비어있음';
+
+    var listHtml = dayEvents.map(function(e){
+      var timeLabel = e.time ? e.time : '녹화';
+      return '<li class="ev'+(e.blocks?'':' is-off')+'">'
+        + '<span class="time mono">'+timeLabel+'</span>'
+        + '<span class="title">'+e.title+'</span>'
+        + tagHtml(e.category)
+        + '</li>';
+    }).join('');
+
+    return '<div class="dd-head"><span class="pill '+pillCls+'">'+pillText+'</span>'
+      + '<span class="dd-date mono">'+fmtKDate(dateStr)+' ('+dow+')</span></div>'
+      + (dayEvents.length ? '<ul class="dd-list">'+listHtml+'</ul>' : '<div class="dd-empty">등록된 일정이 없어요.</div>');
+  }
+
+  function selectDay(dateStr){
+    selectedDate = dateStr;
+    renderCalendar(curYm);
+  }
+
+  function renderCalendar(ym){
+    curYm = ym;
+    var y = parseInt(ym.slice(0,4),10), m = parseInt(ym.slice(5,7),10);
+    var total = daysInMonth(y,m);
+    var firstDow = dowOf(ym+'-01');
+    var today = todayStr();
+
+    var cells = [];
+    for(var i=0;i<firstDow;i++) cells.push('<div class="cal-cell pad"></div>');
+    for(var d=1; d<=total; d++){
+      var ds = ym+'-'+pad(d);
+      var dayEvents = byDate[ds] || [];
+      var blocking = dayEvents.filter(function(e){return e.blocks});
+      var cls = 'cal-cell ' + (blocking.length ? 'busy' : 'free');
+      if(ds===today) cls += ' today';
+      if(ds===selectedDate) cls += ' selected';
+      var labelHtml = '';
+      if(blocking.length){
+        var h = (CATS[blocking[0].category]||{}).hue;
+        var short = shortLabel(blocking[0]);
+        var more = blocking.length>1 ? '+'+(blocking.length-1) : '';
+        labelHtml = '<span class="lbl" style="--h:'+(h!==undefined?h:0)+'">'+short+more+'</span>';
+      }
+      cells.push('<div class="'+cls+'" data-date="'+ds+'"><span class="num">'+d+'</span>'+labelHtml+'</div>');
+    }
+    var trailing = (7 - (cells.length % 7)) % 7;
+    for(var t=0;t<trailing;t++) cells.push('<div class="cal-cell pad"></div>');
+
+    var area = document.getElementById('calArea');
+    area.innerHTML =
+      '<div class="cal-nav">'
+      + '<button id="prevBtn" '+(ym<=minYm?'disabled':'')+'>‹</button>'
+      + '<span class="label">'+y+'년 '+m+'월</span>'
+      + '<button id="nextBtn" '+(ym>=maxYm?'disabled':'')+'>›</button>'
+      + '</div>'
+      + '<div class="legend"><span><span class="sw free"></span>비어있음</span><span><span class="sw busy"></span>일정 있음</span></div>'
+      + '<div class="cal-dow">'+DOW.map(function(w){return '<span>'+w+'</span>'}).join('')+'</div>'
+      + '<div class="cal-grid" id="calGrid">'+cells.join('')+'</div>'
+      + '<div class="day-detail" id="dayDetail"></div>';
+
+    document.getElementById('prevBtn').addEventListener('click', function(){ if(ym>minYm) renderCalendar(shiftYm(ym,-1)); });
+    document.getElementById('nextBtn').addEventListener('click', function(){ if(ym<maxYm) renderCalendar(shiftYm(ym,1)); });
+    document.getElementById('calGrid').addEventListener('click', function(ev){
+      var cell = ev.target.closest('.cal-cell');
+      if(!cell || cell.classList.contains('pad')) return;
+      selectDay(cell.getAttribute('data-date'));
+    });
+
+    var dd = document.getElementById('dayDetail');
+    dd.innerHTML = (selectedDate && selectedDate.slice(0,7)===ym)
+      ? dayDetailHtml(selectedDate)
+      : '<div class="dd-empty">날짜를 눌러서 그날 일정을 확인해요.</div>';
+  }
+
+  function renderSchedule(){
+    var area = document.getElementById('scheduleArea');
+    var nav = document.getElementById('monthNav');
+    var months = {};
+    events.forEach(function(e){
+      var mk = e.date.slice(0,7);
+      months[mk] = months[mk] || {};
+      months[mk][e.date] = months[mk][e.date] || [];
+      months[mk][e.date].push(e);
+    });
+    var monthKeys = Object.keys(months).sort();
+    var today = todayStr();
+
+    nav.innerHTML = monthKeys.map(function(mk){
+      return '<a href="#m-'+mk+'">'+parseInt(mk.slice(5,7),10)+'월</a>';
+    }).join('');
+
+    area.innerHTML = monthKeys.map(function(mk){
+      var mNum = parseInt(mk.slice(5,7),10), yr = mk.slice(0,4);
+      var dateKeys = Object.keys(months[mk]).sort();
+      var daysHtml = dateKeys.map(function(dk){
+        var evs = months[mk][dk].slice().sort(function(a,b){ return (a.time||'99:99').localeCompare(b.time||'99:99'); });
+        var dow = DOW[dowOf(dk)];
+        var dnum = parseInt(dk.slice(8,10),10), mnum = parseInt(dk.slice(5,7),10);
+        var isToday = dk === today;
+        var evHtml = evs.map(function(e){
+          var timeLabel = e.time ? e.time : '녹화';
+          return '<div class="ev'+(e.blocks?'':' is-off')+'">'
+            + '<span class="time mono">'+timeLabel+'</span>'
+            + '<span class="title">'+e.title+'</span>'
+            + tagHtml(e.category)
+            + '</div>';
+        }).join('');
+        return '<div class="day"><div class="day-head"><span class="date-num">'+mnum+'/'+dnum+'</span>'
+          + '<span class="dow">('+dow+')</span>'+(isToday?'<span class="today-mark">오늘</span>':'')+'</div>'+evHtml+'</div>';
+      }).join('');
+      return '<div class="month" id="m-'+mk+'"><h3>'+yr+'년 '+mNum+'월</h3>'+daysHtml+'</div>';
+    }).join('');
+  }
+
+  var pdId = getParam('pd');
+  if(!pdId){
+    document.getElementById('calArea').innerHTML = '<div class="empty">PD가 지정되지 않았어요. <a href="index.html">PD 목록으로</a></div>';
+  } else {
+    Promise.all([
+      fetch('data/pds.json').then(function(r){ return r.json(); }).catch(function(){ return []; }),
+      fetch('data/'+pdId+'.json').then(function(r){
+        if(!r.ok) throw new Error('not found');
+        return r.json();
+      })
+    ]).then(function(res){
+      var pds = res[0], data = res[1];
+      var pd = pds.filter(function(p){ return p.id===pdId; })[0];
+      var name = pd ? pd.name : pdId;
+      document.getElementById('pdName').textContent = name;
+      document.getElementById('pageTitle').textContent = name + ' 스케쥴';
+
+      events = data.slice().sort(function(a,b){ return a.date < b.date ? -1 : (a.date > b.date ? 1 : 0); });
+      byDate = {};
+      events.forEach(function(e){
+        byDate[e.date] = byDate[e.date] || [];
+        byDate[e.date].push(e);
+      });
+      document.getElementById('syncNote').textContent = '등록된 일정 '+events.length+'건 · 정적 파일 기준';
+
+      if(!events.length){
+        document.getElementById('calArea').innerHTML = '<div class="empty">아직 등록된 일정이 없어요.</div>';
+        return;
+      }
+      minYm = events[0].date.slice(0,7);
+      maxYm = events[events.length-1].date.slice(0,7);
+      var todayYm = todayStr().slice(0,7);
+      renderCalendar((todayYm>=minYm && todayYm<=maxYm) ? todayYm : minYm);
+      renderSchedule();
+    }).catch(function(){
+      document.getElementById('syncNote').textContent = '일정을 불러오지 못했어요.';
+      document.getElementById('calArea').innerHTML = '<div class="empty">해당 PD의 일정 파일을 찾을 수 없어요.</div>';
+    });
+  }
+})();
+</script>
+
+</body>
+</html>

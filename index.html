@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PD 스케쥴 관리</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800;900&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <div class="brand">
+      <h1>PD 스케쥴 관리</h1>
+      <span class="tag-rec">REC</span>
+    </div>
+    <div class="sub">PD를 선택하면 해당 스케쥴표로 이동해요.</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div id="pdList"></div>
+  <footer>
+    이 사이트는 정적 파일로만 동작해서 특정 계정이나 서비스 구독 상태와 무관하게 유지돼요.
+    일정이 바뀌면 data 폴더 안의 json 파일을 새로 받아서 올려주면 반영돼요.
+  </footer>
+</div>
+
+<script>
+fetch('data/pds.json').then(function(r){ return r.json(); }).then(function(pds){
+  var list = document.getElementById('pdList');
+  if(!pds.length){
+    list.innerHTML = '<div class="empty">등록된 PD가 아직 없어요.</div>';
+    return;
+  }
+  list.innerHTML = pds.map(function(pd){
+    return '<a class="pd-card" href="schedule.html?pd='+encodeURIComponent(pd.id)+'">'
+      + '<span><span class="name">'+pd.name+'</span><div class="desc">'+(pd.desc||'')+'</div></span>'
+      + '<span class="arrow">›</span></a>';
+  }).join('');
+}).catch(function(){
+  document.getElementById('pdList').innerHTML = '<div class="empty">PD 목록을 불러오지 못했어요.</div>';
+});
+</script>
+
+</body>
+</html>
