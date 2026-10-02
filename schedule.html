@@ -48,11 +48,13 @@
     beginner:{label:'초급반', hue:230},
     trackdesign:{label:'트랙디자인', hue:310}
   };
-  var CAT_BASE = {china:'중국', japan:'일본', korea:'한국', global1:'글로벌', globalcareer:'글로벌커리어', album:'AI 앨범 제작', jordan:'조던쇼를 잡아라', hitmakers:'히트메이커스 멜법', nova:'노바', openclass:'오픈', beginner:'초급', trackdesign:'트랙디자인'};
+  var CAT_BASE = {china:'중국', japan:'일본', korea:'한국', global1:'글로벌', globalcareer:'커리어', album:'AI플', jordan:'조던', hitmakers:'히트2', nova:'노바', openclass:'오픈', beginner:'초급', trackdesign:'트랙'};
+  var CAT_NO_SUFFIX = {global1:true};
   function shortLabel(e){
     var base = CAT_BASE[e.category] || e.category;
+    if(CAT_NO_SUFFIX[e.category]) return base;
     var m = /(\d+)\s*기/.exec(e.title);
-    return m ? base+' '+m[1]+'기' : base;
+    return m ? base+m[1]+'기' : base;
   }
   var DOW = ['일','월','화','수','목','금','토'];
 

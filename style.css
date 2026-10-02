@@ -79,23 +79,10 @@ header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1p
 @media (prefers-color-scheme: dark){.cal-cell .lbl{color:hsl(var(--h) 65% 72%)}}
 .cal-cell .dow-mini{display:none}
 
-/* below ~480px, the 7-col grid can't fit a full-size label without truncating —
-   switch to a one-day-per-row list so every label shows in full */
 @media (max-width: 480px){
-  .cal-dow{display:none}
-  .cal-grid{display:flex;flex-direction:column;gap:6px;margin-top:10px}
-  .cal-cell{
-    aspect-ratio:auto;flex-direction:row;align-items:center;justify-content:flex-start;
-    gap:10px;padding:10px 14px;border-radius:10px;min-width:0;
-  }
-  .cal-cell.pad{display:none}
-  .cal-cell .dow-mini{display:block;font-size:.72rem;color:var(--muted-2);width:20px;flex:none;text-align:center}
-  .cal-cell .num{font-size:.95rem;width:24px;flex:none;text-align:center}
-  .cal-cell .lbl{
-    font-size:.82rem;font-weight:700;margin-top:0;line-height:1.3;
-    white-space:normal;word-break:keep-all;max-width:none;overflow:visible;
-    text-align:left;flex:1;
-  }
+  .cal-cell{padding:1px}
+  .cal-cell .num{font-size:.85rem}
+  .cal-cell .lbl{font-size:.52rem;margin-top:1px;letter-spacing:-0.3px}
 }
 
 .day-detail{margin-top:22px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:14px}
