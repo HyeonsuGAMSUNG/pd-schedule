@@ -78,6 +78,16 @@ header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1p
 }
 @media (prefers-color-scheme: dark){.cal-cell .lbl{color:hsl(var(--h) 65% 72%)}}
 
+@media (max-width: 480px){
+  .cal-cell{aspect-ratio:auto;min-height:58px;padding:5px 2px}
+  .cal-cell .num{font-size:.9rem}
+  .cal-cell .lbl{
+    font-size:.56rem;white-space:normal;word-break:keep-all;line-height:1.15;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+    overflow:hidden;max-width:100%;
+  }
+}
+
 .day-detail{margin-top:22px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:14px}
 .dd-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .dd-date{font-size:1.1rem;font-weight:900}
