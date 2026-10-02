@@ -142,7 +142,8 @@
         var more = blocking.length>1 ? '+'+(blocking.length-1) : '';
         labelHtml = '<span class="lbl" style="--h:'+(h!==undefined?h:0)+'">'+short+more+'</span>';
       }
-      cells.push('<div class="'+cls+'" data-date="'+ds+'"><span class="num">'+d+'</span>'+labelHtml+'</div>');
+      var dowMini = '<span class="dow-mini">'+DOW[dowOf(ds)]+'</span>';
+      cells.push('<div class="'+cls+'" data-date="'+ds+'">'+dowMini+'<span class="num">'+d+'</span>'+labelHtml+'</div>');
     }
     var trailing = (7 - (cells.length % 7)) % 7;
     for(var t=0;t<trailing;t++) cells.push('<div class="cal-cell pad"></div>');
