@@ -48,12 +48,12 @@
     beginner:{label:'초급반', hue:230},
     trackdesign:{label:'트랙디자인', hue:310},
     sunocomp:{label:'수노 작곡반', hue:70},
-    demo:{label:'DEMO 메이킹', hue:190},
+    demo:{label:'DEMO 메이킹 클래스 3기', hue:190},
     genre:{label:'장르특강', hue:150},
     tsm:{label:'일본 유학 TSM', hue:10},
     toplinefree:{label:'탑라인 무료특강', hue:330}
   };
-  var CAT_BASE = {china:'중국', japan:'일본', korea:'한국', global1:'글로벌', globalcareer:'커리어', album:'AI앨범', jordan:'조던', hitmakers:'히트2', nova:'노바', openclass:'오픈', beginner:'초급', trackdesign:'트랙디자인', sunocomp:'수노작곡', demo:'DEMO', genre:'장르특강', tsm:'TSM', toplinefree:'탑라인무료'};
+  var CAT_BASE = {china:'중국', japan:'일본', korea:'한국', global1:'글로벌', globalcareer:'커리어', album:'AI앨범', jordan:'조던', hitmakers:'히트2', nova:'노바', openclass:'오픈', beginner:'초급', trackdesign:'트랙디자인', sunocomp:'수노작곡', demo:'데메클3기', genre:'장르특강', tsm:'TSM', toplinefree:'탑라인무료'};
   var CAT_NO_SUFFIX = {global1:true};
   function shortLabel(e){
     var base = CAT_BASE[e.category] || e.category;
@@ -143,11 +143,13 @@
       if(ds===today) cls += ' today';
       if(ds===selectedDate) cls += ' selected';
       var labelHtml = '';
-      if(blocking.length){
-        var h = (CATS[blocking[0].category]||{}).hue;
-        var short = shortLabel(blocking[0]);
-        var more = blocking.length>1 ? '+'+(blocking.length-1) : '';
-        labelHtml = '<span class="lbl" style="--h:'+(h!==undefined?h:0)+'">'+short+more+'</span>';
+      var labelSource = blocking.length ? blocking : dayEvents;
+      if(labelSource.length){
+        var h = (CATS[labelSource[0].category]||{}).hue;
+        var short = shortLabel(labelSource[0]);
+        var more = labelSource.length>1 ? '+'+(labelSource.length-1) : '';
+        var mutedCls = blocking.length ? '' : ' muted';
+        labelHtml = '<span class="lbl'+mutedCls+'" style="--h:'+(h!==undefined?h:0)+'">'+short+more+'</span>';
       }
       var dowMini = '<span class="dow-mini">'+DOW[dowOf(ds)]+'</span>';
       cells.push('<div class="'+cls+'" data-date="'+ds+'">'+dowMini+'<span class="num">'+d+'</span>'+labelHtml+'</div>');

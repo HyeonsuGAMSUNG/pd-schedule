@@ -31,5 +31,7 @@
 {"date":"2027-01-08","time":"19:00","title":"15기 장르특강 성준PD (5)","category":"genre","blocks":true},
 {"date":"2027-01-18","time":"19:00","title":"15기 장르특강 성준PD (4)","category":"genre","blocks":true},
 {"date":"2027-02-01","time":"19:00","title":"15기 장르특강 성준PD (6)","category":"genre","blocks":true},
+{"date":"2027-02-07","time":null,"title":"설날","category":"openclass","blocks":false},
+{"date":"2027-02-08","time":null,"title":"설 연휴","category":"openclass","blocks":false},
 {"date":"2027-02-15","time":"19:00","title":"15기 장르특강 성준PD (7)","category":"genre","blocks":true}
 ]
