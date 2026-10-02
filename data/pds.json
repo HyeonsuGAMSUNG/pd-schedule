@@ -8,5 +8,30 @@
     "id": "heojunho",
     "name": "허준호 PD",
     "desc": "글로벌 1기, 초급반, 트랙디자인 등"
+  },
+  {
+    "id": "sinpureunsol",
+    "name": "신푸른솔",
+    "desc": "글로벌 1기 통역, 트랙디자인 등"
+  },
+  {
+    "id": "naseongjun",
+    "name": "나성준 PD",
+    "desc": "DEMO 메이킹, 수노 작곡반, 장르특강 등"
+  },
+  {
+    "id": "kimseonhwi",
+    "name": "김선휘 PD",
+    "desc": "초급반, 일본 유학반 TSM, 탑라인 무료특강 등"
+  },
+  {
+    "id": "syunta",
+    "name": "슌타",
+    "desc": "수노 작곡반·일본 유학반 통역"
+  },
+  {
+    "id": "satsuki",
+    "name": "사츠키",
+    "desc": "일본 5기, 글로벌 통역"
   }
 ]
