@@ -27,21 +27,26 @@
   </footer>
 </div>
 
+<script src="sync-status.js"></script>
 <script>
-fetch('data/pds.json').then(function(r){ return r.json(); }).then(function(pds){
-  var list = document.getElementById('pdList');
-  if(!pds.length){
-    list.innerHTML = '<div class="empty">등록된 PD가 아직 없어요.</div>';
-    return;
-  }
-  list.innerHTML = pds.map(function(pd){
-    return '<a class="pd-card" href="schedule.html?pd='+encodeURIComponent(pd.id)+'">'
-      + '<span><span class="name">'+pd.name+'</span><div class="desc">'+(pd.desc||'')+'</div></span>'
-      + '<span class="arrow">›</span></a>';
-  }).join('');
-}).catch(function(){
-  document.getElementById('pdList').innerHTML = '<div class="empty">PD 목록을 불러오지 못했어요.</div>';
-});
+function loadPds(){
+  return fetch(PDSync.bust('data/pds.json'), {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(pds){
+    var list = document.getElementById('pdList');
+    if(!pds.length){
+      list.innerHTML = '<div class="empty">등록된 PD가 아직 없어요.</div>';
+      return;
+    }
+    list.innerHTML = pds.map(function(pd){
+      return '<a class="pd-card" href="schedule.html?pd='+encodeURIComponent(pd.id)+'">'
+        + '<span><span class="name">'+pd.name+'</span><div class="desc">'+(pd.desc||'')+'</div></span>'
+        + '<span class="arrow">›</span></a>';
+    }).join('');
+  }).catch(function(){
+    document.getElementById('pdList').innerHTML = '<div class="empty">PD 목록을 불러오지 못했어요.</div>';
+  });
+}
+PDSync.ready.then(loadPds);
+PDSync.onUpdate(loadPds);
 </script>
 
 </body>

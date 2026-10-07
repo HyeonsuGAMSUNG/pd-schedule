@@ -31,7 +31,19 @@ a{color:inherit}
 .wrap{max-width:720px;margin:0 auto;padding-inline:16px}
 
 header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--border)}
-.top-inner{max-width:720px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:2px}
+.top-inner{max-width:720px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:2px;position:relative}
+.sync-chip{
+  position:absolute;top:14px;right:16px;display:flex;align-items:center;gap:6px;
+  max-width:56%;padding:4px 10px;border-radius:999px;border:1px solid var(--border);
+  background:var(--chip-bg);color:var(--muted);font-size:.68rem;font-weight:600;line-height:1.3;
+}
+.sync-chip .dot{width:7px;height:7px;border-radius:50%;background:var(--good);flex:none}
+.sync-chip.busy{color:var(--accent);border-color:var(--accent)}
+.sync-chip.busy .dot{background:var(--accent);animation:syncpulse 1.1s ease-in-out infinite}
+.sync-chip.warn{color:var(--bad);border-color:var(--bad)}
+.sync-chip.warn .dot{background:var(--bad)}
+@keyframes syncpulse{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion: reduce){.sync-chip.busy .dot{animation:none}}
 .brand{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
 .brand h1{font-size:1.25rem;font-weight:900;letter-spacing:-0.01em}
 .tag-rec{font-family:'IBM Plex Mono',monospace;font-size:.65rem;font-weight:600;letter-spacing:.08em;color:var(--accent);border:1px solid var(--accent);border-radius:3px;padding:1px 5px}
