@@ -186,3 +186,19 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--border);font-
 @media (max-width: 480px){.pdchips,.cnote{padding-left:0}}
 .pd-card.all-card{border-color:var(--accent)}
 .pd-card.all-card .name{color:var(--accent)}
+
+/* all.html: PD names inside calendar cells */
+.cal-cell.all{aspect-ratio:auto;min-height:84px;justify-content:flex-start;padding:5px 3px 4px}
+.cal-cell .pnames{display:flex;flex-wrap:wrap;justify-content:center;gap:1px 5px;max-width:100%;margin-top:3px}
+.pn{--h:0;font-size:.66rem;font-weight:700;line-height:1.25;color:hsl(var(--h) 55% 36%);white-space:nowrap}
+@media (prefers-color-scheme: dark){.pn{color:hsl(var(--h) 65% 70%)}}
+.pn.int{font-weight:600;text-decoration:underline dotted;text-underline-offset:2px;opacity:.85}
+.pn.off{opacity:.5}
+.pn .ns{display:none}
+@media (max-width: 480px){
+  .cal-cell.all{min-height:70px;padding:3px 1px 2px}
+  .pn{font-size:.56rem;letter-spacing:-0.3px}
+  .pn .nf{display:none}
+  .pn .ns{display:inline}
+  .cal-cell .pnames{gap:0 3px}
+}

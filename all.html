@@ -64,6 +64,9 @@
   };
   var DOW = ['일','월','화','수','목','금','토'];
   var WINDOW_MIN = 180;
+  var PD_HUE = {michingamsung:20, heojunho:210, sinpureunsol:150, naseongjun:280, kimseonhwi:330, syunta:45, satsuki:185};
+  var SHORT = {michingamsung:'미친', heojunho:'준호', sinpureunsol:'푸른', naseongjun:'성준', kimseonhwi:'선휘', syunta:'슌타', satsuki:'사츠'};
+  function shortName(id){ return SHORT[id] || (pdName[id]||id).slice(0,2); }
 
   var pds = [];           // [{id,name}]
   var pdName = {};
@@ -270,16 +273,21 @@
       var cn = conflictByDate[ds];
       var mark = cn==='person' ? '<span class="cmark person">!</span>' : (cn==='interp' ? '<span class="cmark interp">!</span>' : '');
       var src = blocking.length ? blocking : evs;
-      var seen = {}, dots = [];
+      var who = {};
       src.forEach(function(x){
-        if(seen[x.category]) return; seen[x.category] = true;
-        dots.push('<i class="cdot'+(blocking.length?'':' off')+'" style="--h:'+((CATS[x.category]||{hue:0}).hue)+'"></i>');
+        if(x.category==='holiday') return;
+        Object.keys(x.people).forEach(function(p){
+          if(who[p]!=='main') who[p] = x.people[p];
+        });
       });
-      var shown = dots.slice(0,4).join('');
-      var extra = dots.length>4 ? '<span class="cmore">+'+(dots.length-4)+'</span>' : '';
+      var names = PD_IDS.filter(function(p){ return who[p]; }).map(function(p){
+        var hue = PD_HUE[p]!==undefined ? PD_HUE[p] : 0;
+        return '<span class="pn'+(who[p]==='int'?' int':'')+(blocking.length?'':' off')+'" style="--h:'+hue+'">'
+          + '<span class="nf">'+esc(pdName[p]||p)+'</span><span class="ns">'+esc(shortName(p))+'</span></span>';
+      }).join('');
       var cnt = blocking.length ? '<span class="ccount">'+blocking.length+'</span>' : '';
       cells.push('<div class="'+cls+'" data-date="'+ds+'">'+mark+'<span class="num">'+d+'</span>'
-        +'<span class="dots">'+shown+extra+'</span>'+cnt+'</div>');
+        +'<span class="pnames">'+names+'</span>'+cnt+'</div>');
     }
     var trailing = (7 - (cells.length % 7)) % 7;
     for(var t=0;t<trailing;t++) cells.push('<div class="cal-cell pad"></div>');
@@ -289,7 +297,7 @@
       '<div class="cal-nav"><button id="prevBtn" '+(ym<=minYm?'disabled':'')+'>‹</button>'
       + '<span class="label">'+y+'년 '+m+'월</span>'
       + '<button id="nextBtn" '+(ym>=maxYm?'disabled':'')+'>›</button></div>'
-      + '<div class="legend"><span>점 = 수업 종류 · 숫자 = 그날 수업 수</span>'
+      + '<div class="legend"><span>이름 = 그날 일정이 있는 PD(점선 = 통역) · 숫자 = 수업 수</span>'
       + '<span><span class="cmark person inline">!</span>같은 사람 겹침</span>'
       + '<span><span class="cmark interp inline">!</span>통역 수업 동시간</span></div>'
       + '<div class="cal-dow">'+DOW.map(function(w){return '<span>'+w+'</span>';}).join('')+'</div>'
