@@ -64,8 +64,8 @@
   };
   var DOW = ['일','월','화','수','목','금','토'];
   var WINDOW_MIN = 180;
-  var PD_HUE = {michingamsung:20, heojunho:210, sinpureunsol:150, naseongjun:280, kimseonhwi:330, syunta:45, satsuki:185, honomi:100};
-  var SHORT = {michingamsung:'미친', heojunho:'준호', sinpureunsol:'푸른', naseongjun:'성준', kimseonhwi:'선휘', syunta:'슌타', satsuki:'사츠', honomi:'호노'};
+  var PD_HUE = {michingamsung:20, heojunho:210, sinpureunsol:150, naseongjun:280, kimseonhwi:330, syunta:45, satsuki:185, honomi:100, ohani:250};
+  var SHORT = {michingamsung:'미친', heojunho:'준호', sinpureunsol:'푸른', naseongjun:'성준', kimseonhwi:'선휘', syunta:'슌타', satsuki:'사츠', honomi:'호노', ohani:'오하'};
   function shortName(id){ return SHORT[id] || (pdName[id]||id).slice(0,2); }
 
   var pds = [];           // [{id,name}]
@@ -280,11 +280,16 @@
           if(who[p]!=='main') who[p] = x.people[p];
         });
       });
-      var names = PD_IDS.filter(function(p){ return who[p]; }).map(function(p){
-        var hue = PD_HUE[p]!==undefined ? PD_HUE[p] : 0;
-        return '<span class="pn'+(who[p]==='int'?' int':'')+(blocking.length?'':' off')+'" style="--h:'+hue+'">'
-          + '<span class="nf">'+esc(pdName[p]||p)+'</span><span class="ns">'+esc(shortName(p))+'</span></span>';
-      }).join('');
+      function nameSpans(role){
+        return PD_IDS.filter(function(p){ return who[p]===role; }).map(function(p){
+          var hue = PD_HUE[p]!==undefined ? PD_HUE[p] : 0;
+          return '<span class="pn'+(blocking.length?'':' off')+'" style="--h:'+hue+'">'
+            + '<span class="nf">'+esc(pdName[p]||p)+'</span><span class="ns">'+esc(shortName(p))+'</span></span>';
+        }).join('');
+      }
+      var mainHtml = nameSpans('main'), intHtml = nameSpans('int');
+      var names = (mainHtml ? '<span class="pgrp">'+mainHtml+'</span>' : '')
+        + (intHtml ? '<span class="pgrp int">'+intHtml+'</span>' : '');
       var cnt = blocking.length ? '<span class="ccount">'+blocking.length+'</span>' : '';
       cells.push('<div class="'+cls+'" data-date="'+ds+'">'+mark+'<span class="num">'+d+'</span>'
         +'<span class="pnames">'+names+'</span>'+cnt+'</div>');
@@ -297,7 +302,7 @@
       '<div class="cal-nav"><button id="prevBtn" '+(ym<=minYm?'disabled':'')+'>‹</button>'
       + '<span class="label">'+y+'년 '+m+'월</span>'
       + '<button id="nextBtn" '+(ym>=maxYm?'disabled':'')+'>›</button></div>'
-      + '<div class="legend"><span>이름 = 그날 일정이 있는 PD(점선 = 통역) · 숫자 = 수업 수</span>'
+      + '<div class="legend"><span>위 = 강의·진행 · 아래 점선 = 통역 · 숫자 = 수업 수</span>'
       + '<span><span class="cmark person inline">!</span>같은 사람 겹침</span>'
       + '<span><span class="cmark interp inline">!</span>통역 수업 동시간</span></div>'
       + '<div class="cal-dow">'+DOW.map(function(w){return '<span>'+w+'</span>';}).join('')+'</div>'

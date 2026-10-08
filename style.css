@@ -202,3 +202,11 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--border);font-
   .pn .ns{display:inline}
   .cal-cell .pnames{gap:0 3px}
 }
+.cal-cell .pnames{flex-direction:column;align-items:center;gap:0}
+.pgrp{display:flex;flex-wrap:wrap;justify-content:center;gap:1px 5px}
+.pgrp.int{margin-top:6px;padding-top:4px;border-top:1px dashed var(--border);width:100%}
+.pgrp.int .pn{text-decoration:none;font-weight:600;opacity:.85}
+@media (max-width: 480px){
+  .pgrp{gap:0 3px}
+  .pgrp.int{margin-top:4px;padding-top:2px}
+}
