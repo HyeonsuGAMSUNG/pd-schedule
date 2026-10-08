@@ -57,7 +57,7 @@
 
   <footer>
     모든 PD의 일정을 한 화면에 합친 페이지예요. 같은 수업은 한 줄로 묶고, 참여하는 PD와 통역을 아래에 표시해요.
-    겹침 표시는 시작 시각이 3시간 안으로 가까운 수업끼리 비교한 참고용이에요. 시간이 노션에 없는 수업은 19:00 기준이에요.
+    겹침 표시는 시작 시각이 3시간 안으로 가까운 수업끼리 비교한 참고용이에요. 시간이 노션에 없는 수업은 19:00 기준이에요. 같은 사람(강의자·통역자 누구든)이 비슷한 시간에 두 수업에 잡힌 경우만 표시해요.
   </footer>
 </div>
 
@@ -150,7 +150,6 @@
 
   // ---------- conflicts ----------
   // level 'person': the same person is in two classes that start close together
-  // level 'interp': two classes that both need an interpreter start close together
   function computeConflicts(list){
     var byDate = {};
     list.forEach(function(x){
@@ -164,10 +163,7 @@
         var A=l[a], B=l[b];
         if(Math.abs(mins(A.time)-mins(B.time))>=WINDOW_MIN) continue;
         var shared = Object.keys(A.people).filter(function(p){ return B.people[p]; });
-        var needA = Object.keys(A.people).some(function(p){ return A.people[p]==='int'; });
-        var needB = Object.keys(B.people).some(function(p){ return B.people[p]==='int'; });
         if(shared.length) out.push({date:d, level:'person', who:shared, a:A, b:B});
-        else if(needA && needB) out.push({date:d, level:'interp', who:[], a:A, b:B});
       }
     });
     return out;
@@ -330,7 +326,7 @@
       + '<button id="nextBtn" '+(ym>=maxYm?'disabled':'')+'>›</button></div>'
       + '<div class="legend"><span class="pdlegend"><span class="pn c" style="--h:270">미친감성</span><span class="pn c" style="--h:48">나성준</span><span class="pn c" style="--h:215">허준호</span><span class="pn c" style="--h:0">김선휘</span><span>위 = 강의·진행 / 아래 구분선 = 통역 / 큰 숫자 = 수업 수</span></span>'
       + '<span><span class="cmark person inline">!</span>같은 사람 겹침</span>'
-      + '<span><span class="cmark interp inline">!</span>통역 수업 동시간</span></div>'
+      + '</div>'
       + '<div class="cal-dow">'+DOW.map(function(w){return '<span>'+w+'</span>';}).join('')+'</div>'
       + '<div class="cal-grid" id="calGrid">'+cells.join('')+'</div>'
       + '<div class="day-detail" id="dayDetail"></div>';
