@@ -1,0 +1,395 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>전체 스케쥴</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800;900&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="backlink" href="index.html">‹ PD 목록</a>
+    <div class="brand">
+      <h1>전체 스케쥴</h1>
+      <span class="tag-rec">ALL</span>
+    </div>
+    <div class="sub" id="syncNote">데이터 불러오는 중…</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="filters" id="filters"></div>
+  <div id="conflictArea"></div>
+  <div id="calArea"><div class="empty">일정 불러오는 중…</div></div>
+
+  <div class="section-title"><h2>전체 일정</h2></div>
+  <div class="month-nav" id="monthNav"></div>
+  <div id="scheduleArea"></div>
+
+  <footer>
+    모든 PD의 일정을 한 화면에 합친 페이지예요. 같은 수업은 한 줄로 묶고, 참여하는 PD와 통역을 아래에 표시해요.
+    겹침 표시는 시작 시각이 3시간 안으로 가까운 수업끼리 비교한 참고용이에요. 시간이 노션에 없는 수업은 19:00 기준이에요.
+  </footer>
+</div>
+
+<script src="sync-status.js"></script>
+<script>
+(function(){
+  var PD_IDS = ['michingamsung','heojunho','sinpureunsol','naseongjun','kimseonhwi','syunta','satsuki'];
+  var CATS = {
+    china:{label:'중국', hue:18},
+    japan:{label:'일본', hue:350},
+    korea:{label:'한국', hue:205},
+    global1:{label:'글로벌 1기', hue:262},
+    globalcareer:{label:'글로벌 커리어', hue:285},
+    album:{label:'AI 앨범 제작', hue:40},
+    jordan:{label:'조던쇼를 잡아라', hue:165},
+    hitmakers:{label:'히트메이커스 멜법', hue:130},
+    nova:{label:'노바 피드백', hue:0},
+    openclass:{label:'오픈 특강', hue:95},
+    holiday:{label:'공휴일/휴무', hue:210},
+    beginner:{label:'초급반', hue:230},
+    trackdesign:{label:'트랙디자인', hue:310},
+    sunocomp:{label:'수노 작곡반', hue:70},
+    demo:{label:'DEMO 메이킹 클래스 3기', hue:190},
+    genre:{label:'장르특강', hue:150},
+    tsm:{label:'일본 유학 TSM', hue:10},
+    toplinefree:{label:'탑라인 무료특강', hue:330},
+    ginger:{label:'진저브레드 글로벌1기', hue:55},
+    bensamama:{label:'벤사마마 글로벌1기', hue:340}
+  };
+  var DOW = ['일','월','화','수','목','금','토'];
+  var WINDOW_MIN = 180;
+
+  var pds = [];           // [{id,name}]
+  var pdName = {};
+  var merged = [];        // merged class entries (all PDs)
+  var active = {};        // pd id -> true (filter)
+  var curYm = null, minYm = null, maxYm = null, selectedDate = null;
+
+  function pad(n){return String(n).length<2?'0'+n:String(n)}
+  function todayStr(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function dowOf(s){ var p=s.split('-').map(Number); return new Date(p[0],p[1]-1,p[2]).getDay(); }
+  function fmtKDate(s){ var p=s.split('-').map(Number); return p[1]+'월 '+p[2]+'일'; }
+  function daysInMonth(y,m){ return new Date(y,m,0).getDate(); }
+  function shiftYm(ym,d){
+    var y=parseInt(ym.slice(0,4),10), m=parseInt(ym.slice(5,7),10)+d;
+    while(m>12){m-=12;y++;} while(m<1){m+=12;y--;}
+    return y+'-'+pad(m);
+  }
+  function mins(t){ var p=t.split(':'); return parseInt(p[0],10)*60+parseInt(p[1],10); }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function isInterp(title){ return /통역/.test(title); }
+  function cleanTitle(t){ return t.replace(/\s*\((마무리\/)?통역\)\s*$/,''); }
+
+  function tagHtml(cat){
+    var c = CATS[cat] || {label:cat, hue:0};
+    return '<span class="tagc" style="--h:'+c.hue+'">'+esc(c.label)+'</span>';
+  }
+
+  // ---------- merge ----------
+  function mergeAll(perPd){
+    var map = {};
+    var order = [];
+    perPd.forEach(function(pack){
+      pack.events.forEach(function(e){
+        var role = isInterp(e.title) ? 'int' : 'main';
+        var key = e.date+'|'+e.category+'|'+(e.time||'');
+        var x = map[key];
+        if(!x){
+          x = map[key] = {date:e.date, time:e.time, category:e.category, title:e.title, titleRole:role, blocks:false, people:{}};
+          order.push(key);
+        }
+        if(role==='main' && x.titleRole==='int'){ x.title = e.title; x.titleRole = 'main'; }
+        x.blocks = x.blocks || e.blocks;
+        if(!x.people[pack.id] || role==='main') x.people[pack.id] = role;
+      });
+    });
+    return order.map(function(k){
+      var x = map[k];
+      if(x.titleRole==='int') x.title = cleanTitle(x.title);
+      return x;
+    }).sort(function(a,b){
+      if(a.date!==b.date) return a.date<b.date?-1:1;
+      return (a.time||'99:99').localeCompare(b.time||'99:99');
+    });
+  }
+
+  // ---------- conflicts ----------
+  // level 'person': the same person is in two classes that start close together
+  // level 'interp': two classes that both need an interpreter start close together
+  function computeConflicts(list){
+    var byDate = {};
+    list.forEach(function(x){
+      if(!x.blocks || !x.time) return;
+      (byDate[x.date] = byDate[x.date] || []).push(x);
+    });
+    var out = [];
+    Object.keys(byDate).sort().forEach(function(d){
+      var l = byDate[d];
+      for(var a=0;a<l.length;a++) for(var b=a+1;b<l.length;b++){
+        var A=l[a], B=l[b];
+        if(Math.abs(mins(A.time)-mins(B.time))>=WINDOW_MIN) continue;
+        var shared = Object.keys(A.people).filter(function(p){ return B.people[p]; });
+        var needA = Object.keys(A.people).some(function(p){ return A.people[p]==='int'; });
+        var needB = Object.keys(B.people).some(function(p){ return B.people[p]==='int'; });
+        if(shared.length) out.push({date:d, level:'person', who:shared, a:A, b:B});
+        else if(needA && needB) out.push({date:d, level:'interp', who:[], a:A, b:B});
+      }
+    });
+    return out;
+  }
+
+  var conflicts = [];
+  var conflictByDate = {};
+  function indexConflicts(){
+    conflictByDate = {};
+    conflicts.forEach(function(c){
+      var cur = conflictByDate[c.date];
+      if(!cur || c.level==='person') conflictByDate[c.date] = c.level;
+    });
+  }
+
+  // ---------- filtering ----------
+  function visibleEvents(){
+    var anyOn = PD_IDS.some(function(id){ return active[id]; });
+    if(!anyOn) return merged;
+    return merged.filter(function(x){
+      return Object.keys(x.people).some(function(p){ return active[p]; });
+    });
+  }
+  function byDateMap(list){
+    var m = {};
+    list.forEach(function(x){ (m[x.date] = m[x.date] || []).push(x); });
+    return m;
+  }
+
+  function peopleHtml(x){
+    if(x.category==='holiday') return '';
+    var ids = Object.keys(x.people).sort(function(a,b){ return PD_IDS.indexOf(a)-PD_IDS.indexOf(b); });
+    var main = ids.filter(function(p){ return x.people[p]==='main'; });
+    var intr = ids.filter(function(p){ return x.people[p]==='int'; });
+    var html = main.map(function(p){ return '<span class="pdchip">'+esc(pdName[p]||p)+'</span>'; }).join('');
+    html += intr.map(function(p){ return '<span class="pdchip int">'+esc(pdName[p]||p)+' 통역</span>'; }).join('');
+    return html ? '<div class="pdchips">'+html+'</div>' : '';
+  }
+
+  function conflictNoteFor(x){
+    var notes = [];
+    conflicts.forEach(function(c){
+      if(c.a!==x && c.b!==x) return;
+      var other = c.a===x ? c.b : c.a;
+      if(c.level==='person'){
+        notes.push('<div class="cnote person">⚠ '+c.who.map(function(p){return esc(pdName[p]||p);}).join(', ')+' 님이 '+esc(other.time)+' '+esc(cleanTitle(other.title))+'와(과) 시간이 겹쳐요</div>');
+      } else {
+        notes.push('<div class="cnote interp">통역 수업이 같은 시간대: '+esc(other.time)+' '+esc(cleanTitle(other.title))+'</div>');
+      }
+    });
+    return notes.join('');
+  }
+
+  function rowHtml(x){
+    var timeLabel = x.time ? x.time : '녹화';
+    return '<div class="ev ev-all'+(x.blocks?'':' is-off')+'">'
+      + '<div class="ev-line"><span class="time mono">'+timeLabel+'</span>'
+      + '<span class="title">'+esc(x.title)+'</span>'+tagHtml(x.category)+'</div>'
+      + peopleHtml(x) + conflictNoteFor(x)
+      + '</div>';
+  }
+
+  // ---------- render ----------
+  function renderFilters(){
+    var anyOn = PD_IDS.some(function(id){ return active[id]; });
+    var html = '<button type="button" class="fchip'+(anyOn?'':' on')+'" data-pd="*">전체</button>';
+    html += pds.map(function(p){
+      return '<button type="button" class="fchip'+(active[p.id]?' on':'')+'" data-pd="'+p.id+'">'+esc(p.name)+'</button>';
+    }).join('');
+    var box = document.getElementById('filters');
+    box.innerHTML = html;
+  }
+
+  function renderConflictSummary(){
+    var area = document.getElementById('conflictArea');
+    var today = todayStr();
+    var upcoming = conflicts.filter(function(c){ return c.date>=today; });
+    if(!upcoming.length){
+      area.innerHTML = '<div class="csum ok">앞으로 겹치는 일정이 없어요.</div>';
+      return;
+    }
+    var nPerson = upcoming.filter(function(c){return c.level==='person';}).length;
+    var nInterp = upcoming.length - nPerson;
+    var items = upcoming.map(function(c){
+      var d = fmtKDate(c.date)+' ('+DOW[dowOf(c.date)]+')';
+      var txt = c.level==='person'
+        ? '<b>⚠ '+c.who.map(function(p){return esc(pdName[p]||p);}).join(', ')+'</b> 동시 배정: '
+        : '<b>통역 수업 동시간:</b> ';
+      return '<li data-date="'+c.date+'"><span class="mono d">'+d+'</span> '+txt
+        + esc(c.a.time)+' '+esc(cleanTitle(c.a.title))+' / '+esc(c.b.time)+' '+esc(cleanTitle(c.b.title))+'</li>';
+    }).join('');
+    area.innerHTML = '<details class="csum"><summary>겹침 참고 '+upcoming.length+'건'
+      + (nPerson?' · <span class="red">같은 사람 '+nPerson+'</span>':'')
+      + (nInterp?' · 통역 수업 동시간 '+nInterp:'')
+      + '</summary><ul>'+items+'</ul></details>';
+    area.querySelector('ul').addEventListener('click', function(ev){
+      var li = ev.target.closest('li'); if(!li) return;
+      var d = li.getAttribute('data-date');
+      selectedDate = d; renderCalendar(d.slice(0,7));
+      document.getElementById('calArea').scrollIntoView({behavior:'smooth', block:'start'});
+    });
+  }
+
+  function dayDetailHtml(ds, dayMap){
+    var evs = dayMap[ds] || [];
+    var blocking = evs.filter(function(x){return x.blocks;});
+    var cn = conflictByDate[ds];
+    var pill = '<span class="pill '+(blocking.length?'busy':'free')+'">'+(blocking.length?('수업 '+blocking.length+'개'):'수업 없음')+'</span>';
+    var warn = cn==='person' ? '<span class="pill warn">⚠ 같은 사람 겹침</span>' : (cn==='interp' ? '<span class="pill amber">통역 수업 동시간</span>' : '');
+    return '<div class="dd-head">'+pill+warn+'<span class="dd-date mono">'+fmtKDate(ds)+' ('+DOW[dowOf(ds)]+')</span></div>'
+      + (evs.length ? '<div class="dd-list">'+evs.map(rowHtml).join('')+'</div>' : '<div class="dd-empty">등록된 일정이 없어요.</div>');
+  }
+
+  function renderCalendar(ym){
+    curYm = ym;
+    var y = parseInt(ym.slice(0,4),10), m = parseInt(ym.slice(5,7),10);
+    var vis = visibleEvents();
+    var dayMap = byDateMap(vis);
+    var total = daysInMonth(y,m), firstDow = dowOf(ym+'-01'), today = todayStr();
+    var cells = [];
+    for(var i=0;i<firstDow;i++) cells.push('<div class="cal-cell pad"></div>');
+    for(var d=1; d<=total; d++){
+      var ds = ym+'-'+pad(d);
+      var evs = dayMap[ds] || [];
+      var blocking = evs.filter(function(x){return x.blocks;});
+      var cls = 'cal-cell all '+(blocking.length?'has':'none');
+      if(ds===today) cls += ' today';
+      if(ds===selectedDate) cls += ' selected';
+      var cn = conflictByDate[ds];
+      var mark = cn==='person' ? '<span class="cmark person">!</span>' : (cn==='interp' ? '<span class="cmark interp">!</span>' : '');
+      var src = blocking.length ? blocking : evs;
+      var seen = {}, dots = [];
+      src.forEach(function(x){
+        if(seen[x.category]) return; seen[x.category] = true;
+        dots.push('<i class="cdot'+(blocking.length?'':' off')+'" style="--h:'+((CATS[x.category]||{hue:0}).hue)+'"></i>');
+      });
+      var shown = dots.slice(0,4).join('');
+      var extra = dots.length>4 ? '<span class="cmore">+'+(dots.length-4)+'</span>' : '';
+      var cnt = blocking.length ? '<span class="ccount">'+blocking.length+'</span>' : '';
+      cells.push('<div class="'+cls+'" data-date="'+ds+'">'+mark+'<span class="num">'+d+'</span>'
+        +'<span class="dots">'+shown+extra+'</span>'+cnt+'</div>');
+    }
+    var trailing = (7 - (cells.length % 7)) % 7;
+    for(var t=0;t<trailing;t++) cells.push('<div class="cal-cell pad"></div>');
+
+    var area = document.getElementById('calArea');
+    area.innerHTML =
+      '<div class="cal-nav"><button id="prevBtn" '+(ym<=minYm?'disabled':'')+'>‹</button>'
+      + '<span class="label">'+y+'년 '+m+'월</span>'
+      + '<button id="nextBtn" '+(ym>=maxYm?'disabled':'')+'>›</button></div>'
+      + '<div class="legend"><span>점 = 수업 종류 · 숫자 = 그날 수업 수</span>'
+      + '<span><span class="cmark person inline">!</span>같은 사람 겹침</span>'
+      + '<span><span class="cmark interp inline">!</span>통역 수업 동시간</span></div>'
+      + '<div class="cal-dow">'+DOW.map(function(w){return '<span>'+w+'</span>';}).join('')+'</div>'
+      + '<div class="cal-grid" id="calGrid">'+cells.join('')+'</div>'
+      + '<div class="day-detail" id="dayDetail"></div>';
+
+    document.getElementById('prevBtn').addEventListener('click', function(){ if(ym>minYm) renderCalendar(shiftYm(ym,-1)); });
+    document.getElementById('nextBtn').addEventListener('click', function(){ if(ym<maxYm) renderCalendar(shiftYm(ym,1)); });
+    document.getElementById('calGrid').addEventListener('click', function(ev){
+      var cell = ev.target.closest('.cal-cell');
+      if(!cell || cell.classList.contains('pad')) return;
+      selectedDate = cell.getAttribute('data-date');
+      renderCalendar(curYm);
+    });
+    document.getElementById('dayDetail').innerHTML = (selectedDate && selectedDate.slice(0,7)===ym)
+      ? dayDetailHtml(selectedDate, dayMap)
+      : '<div class="dd-empty">날짜를 눌러서 그날 모든 PD의 일정을 확인해요.</div>';
+  }
+
+  function renderSchedule(){
+    var vis = visibleEvents();
+    var months = {};
+    vis.forEach(function(x){
+      var mk = x.date.slice(0,7);
+      months[mk] = months[mk] || {};
+      (months[mk][x.date] = months[mk][x.date] || []).push(x);
+    });
+    var mks = Object.keys(months).sort(), today = todayStr();
+    document.getElementById('monthNav').innerHTML = mks.map(function(mk){
+      return '<a href="#m-'+mk+'">'+parseInt(mk.slice(5,7),10)+'월</a>';
+    }).join('');
+    document.getElementById('scheduleArea').innerHTML = mks.map(function(mk){
+      var daysHtml = Object.keys(months[mk]).sort().map(function(dk){
+        var isToday = dk===today, cn = conflictByDate[dk];
+        var badge = cn==='person' ? '<span class="cmark person inline">!</span>' : (cn==='interp' ? '<span class="cmark interp inline">!</span>' : '');
+        return '<div class="day"><div class="day-head"><span class="date-num">'+parseInt(dk.slice(5,7),10)+'/'+parseInt(dk.slice(8,10),10)+'</span>'
+          + '<span class="dow">('+DOW[dowOf(dk)]+')</span>'+(isToday?'<span class="today-mark">오늘</span>':'')+badge+'</div>'
+          + months[mk][dk].map(rowHtml).join('')+'</div>';
+      }).join('');
+      return '<div class="month" id="m-'+mk+'"><h3>'+mk.slice(0,4)+'년 '+parseInt(mk.slice(5,7),10)+'월</h3>'+daysHtml+'</div>';
+    }).join('');
+  }
+
+  function renderAll(){
+    renderFilters();
+    renderConflictSummary();
+    var vis = visibleEvents();
+    if(!vis.length){
+      document.getElementById('calArea').innerHTML = '<div class="empty">표시할 일정이 없어요.</div>';
+      document.getElementById('scheduleArea').innerHTML = '';
+      return;
+    }
+    var todayYm = todayStr().slice(0,7);
+    var keep = (curYm && curYm>=minYm && curYm<=maxYm) ? curYm : ((todayYm>=minYm && todayYm<=maxYm) ? todayYm : minYm);
+    renderCalendar(keep);
+    renderSchedule();
+  }
+
+  document.getElementById('filters').addEventListener('click', function(ev){
+    var b = ev.target.closest('.fchip'); if(!b) return;
+    var id = b.getAttribute('data-pd');
+    if(id==='*') PD_IDS.forEach(function(p){ active[p]=false; });
+    else active[id] = !active[id];
+    renderAll();
+  });
+
+  function load(){
+    return fetch(PDSync.bust('data/pds.json'), {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(list){
+      pds = list;
+      pdName = {};
+      list.forEach(function(p){ pdName[p.id] = p.name.replace(/\s*PD$/,''); });
+      PD_IDS = list.map(function(p){ return p.id; });
+      return Promise.all(list.map(function(p){
+        return fetch(PDSync.bust('data/'+p.id+'.json'), {cache:'no-store'})
+          .then(function(r){ return r.ok ? r.json() : []; })
+          .catch(function(){ return []; })
+          .then(function(ev){ return {id:p.id, events:ev}; });
+      }));
+    }).then(function(packs){
+      var n = 0; packs.forEach(function(p){ n += p.events.length; });
+      merged = mergeAll(packs);
+      conflicts = computeConflicts(merged);
+      indexConflicts();
+      if(!merged.length){
+        document.getElementById('syncNote').textContent = '등록된 일정이 없어요.';
+        document.getElementById('calArea').innerHTML = '<div class="empty">아직 등록된 일정이 없어요.</div>';
+        return;
+      }
+      minYm = merged[0].date.slice(0,7);
+      maxYm = merged[merged.length-1].date.slice(0,7);
+      document.getElementById('syncNote').textContent = 'PD '+packs.length+'명 · 수업 '+merged.length+'개 (PD별 등록 '+n+'건을 합침)';
+      renderAll();
+    }).catch(function(){
+      document.getElementById('syncNote').textContent = '일정을 불러오지 못했어요.';
+      document.getElementById('calArea').innerHTML = '<div class="empty">일정 파일을 불러오지 못했어요.</div>';
+    });
+  }
+  PDSync.ready.then(load);
+  PDSync.onUpdate(load);
+})();
+</script>
+
+</body>
+</html>
