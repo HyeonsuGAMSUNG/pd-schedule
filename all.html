@@ -130,17 +130,19 @@
         var key = e.date+'|'+e.category+'|'+(e.time||'');
         var x = map[key];
         if(!x){
-          x = map[key] = {date:e.date, time:e.time, category:e.category, title:e.title, titleRole:role, blocks:false, people:{}};
+          x = map[key] = {date:e.date, time:e.time, category:e.category, title:e.title, titleRole:role, blocks:false, people:{}, offPeople:{}};
           order.push(key);
         }
         if(role==='main' && x.titleRole==='int'){ x.title = e.title; x.titleRole = 'main'; }
         x.blocks = x.blocks || e.blocks;
-        if(!x.people[pack.id] || role==='main') x.people[pack.id] = role;
+        var bucket = e.blocks ? x.people : x.offPeople;
+        if(!bucket[pack.id] || role==='main') bucket[pack.id] = role;
       });
     });
     return order.map(function(k){
       var x = map[k];
       if(x.titleRole==='int') x.title = cleanTitle(x.title);
+      if(!x.blocks) x.people = x.offPeople;
       return x;
     }).sort(function(a,b){
       if(a.date!==b.date) return a.date<b.date?-1:1;
