@@ -164,6 +164,7 @@
       for(var a=0;a<l.length;a++) for(var b=a+1;b<l.length;b++){
         var A=l[a], B=l[b];
         if(Math.abs(mins(A.time)-mins(B.time))>=WINDOW_MIN) continue;
+        if(A.category===B.category) continue; // 같은 수업의 1부/2부
         var shared = Object.keys(A.people).filter(function(p){ return B.people[p]; });
         if(shared.length) out.push({date:d, level:'person', who:shared, a:A, b:B});
       }
