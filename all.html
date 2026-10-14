@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>전체 스케쥴</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800;900&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=20261015a">
+<link rel="stylesheet" href="style.css?v=20261015b">
 <style>
 /* all.html 전용: HTML과 항상 같이 갱신되도록 인라인 */
 .cal-cell.all{aspect-ratio:auto;min-height:112px;justify-content:flex-start;align-items:center;padding:6px 3px 5px}
@@ -230,6 +230,11 @@
     return notes.join('');
   }
 
+  function pillHtml(x){
+    var c = CATS[x.category] || {hue:0};
+    var lab = cleanTitle(x.title).replace(/^\[[^\]]*\]\s*/,'');
+    return '<span class="apill'+(x.blocks?'':' off')+'" style="--h:'+c.hue+'" draggable="true" data-key="'+esc(x.key)+'" title="'+esc(x.title)+'">'+(x.time?esc(x.time)+' ':'')+esc(lab)+'</span>';
+  }
   function rowHtml(x){
     var timeLabel = x.time ? x.time : '녹화';
     var adm = admin.on ? '<div class="adm-row"><button type="button" data-act="edit">수정</button><button type="button" data-act="move">날짜 이동</button><button type="button" data-act="del" class="danger">삭제</button></div>' : '';
@@ -327,6 +332,7 @@
       var mainHtml = nameSpans('main'), intHtml = nameSpans('int');
       var names = (mainHtml ? '<span class="pgrp">'+mainHtml+'</span>' : '')
         + (intHtml ? '<span class="pgrp int">'+intHtml+'</span>' : '');
+      if(admin.on){ names = '<span class="apills">'+evs.map(pillHtml).join('')+'</span>'; }
       var cnt = blocking.length ? '<span class="ccount">'+blocking.length+'</span>' : '';
       cells.push('<div class="'+cls+'" data-date="'+ds+'">'+mark+'<span class="num">'+d+'</span>'
         +'<span class="pnames">'+names+'</span>'+cnt+'</div>');
@@ -523,8 +529,24 @@
     getFiles: function(){ return packs.map(function(p){ return {key:p.id, path:'data/'+p.id+'.json', text:PDAdmin.serialize(p.events)}; }); }
   });
 
+  function openPillMenu(x){
+    var m = PDAdmin.openModal('<h3>'+PDAdmin.esc(cleanTitle(x.title))+'</h3>'
+      + '<div class="pmenu-sub">'+dlabel(x.date)+(x.time?' '+x.time:'')+'</div>'
+      + '<div class="btns"><button type="button" id="pEdit">수정</button><button type="button" id="pMove">날짜 이동</button><button type="button" id="pDel">삭제</button></div>'
+      + '<div class="hint">PC에서는 달력 칸 안의 일정을 끌어서 다른 날짜에 놓아도 돼요.</div>');
+    m.querySelector('#pEdit').addEventListener('click', function(){ PDAdmin.closeModal(); openEditX(x); });
+    m.querySelector('#pMove').addEventListener('click', function(){ PDAdmin.closeModal(); moving = x.key; renderCalendar(curYm); });
+    m.querySelector('#pDel').addEventListener('click', function(){
+      PDAdmin.closeModal();
+      if(confirm('"'+cleanTitle(x.title)+'" ('+dlabel(x.date)+') 일정을 삭제할까요?')){
+        var pdl = pdsOf(x); deleteX(x); PDAdmin.log('삭제: '+cleanTitle(x.title)+' '+dlabel(x.date), pdl); rebuild();
+      }
+    });
+  }
   document.addEventListener('click', function(ev){
     if(!admin.on) return;
+    var pill = ev.target.closest('.apill');
+    if(pill && !moving){ ev.stopPropagation(); var px = findX(pill.getAttribute('data-key')); if(px) openPillMenu(px); return; }
     var add = ev.target.closest('.adm-add');
     if(add){ openAddX(add.getAttribute('data-date')); return; }
     var btn = ev.target.closest('.adm-row button');
@@ -542,7 +564,7 @@
   });
   document.addEventListener('dragstart', function(ev){
     if(!admin.on) return;
-    var row = ev.target.closest && ev.target.closest('.ev[draggable="true"]'); if(!row) return;
+    var row = ev.target.closest && ev.target.closest('.ev[draggable="true"], .apill[draggable="true"]'); if(!row) return;
     ev.dataTransfer.setData('text/plain', row.getAttribute('data-key')); ev.dataTransfer.effectAllowed = 'move';
   });
   document.addEventListener('dragover', function(ev){

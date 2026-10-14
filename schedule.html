@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title id="pageTitle">PD 스케쥴</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800;900&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=20261015a">
+<link rel="stylesheet" href="style.css?v=20261015b">
 </head>
 <body>
 
@@ -165,6 +165,7 @@
         var mutedCls = blocking.length ? '' : ' muted';
         labelHtml = '<span class="lbl'+mutedCls+'" style="--h:'+(h!==undefined?h:0)+'">'+short+more+'</span>';
       }
+      if(admin.on){ labelHtml = '<span class="apills">'+dayEvents.map(pillHtml).join('')+'</span>'; }
       var dowMini = '<span class="dow-mini">'+DOW[dowOf(ds)]+'</span>';
       cells.push('<div class="'+cls+'" data-date="'+ds+'">'+dowMini+'<span class="num">'+d+'</span>'+labelHtml+'</div>');
     }
@@ -285,6 +286,32 @@
   // =====================================================================
   // 관리자 편집 (공용 admin.js 사용) — 이 PD의 data/<pd>.json 만 고쳐요.
   // =====================================================================
+  function pillHtml(e){
+    var c = CATS[e.category] || {hue:0};
+    return '<span class="apill'+(e.blocks?'':' off')+'" style="--h:'+c.hue+'" draggable="true" data-i="'+events.indexOf(e)+'" title="'+PDAdmin.esc(e.title)+'">'+(e.time?e.time+' ':'')+PDAdmin.esc(e.title.replace(/^\[[^\]]*\]\s*/,''))+'</span>';
+  }
+  function openPillMenu(e){
+    var m = PDAdmin.openModal('<h3>'+PDAdmin.esc(e.title)+'</h3>'
+      + '<div class="pmenu-sub">'+dlabel(e.date)+(e.time?' '+e.time:'')+'</div>'
+      + '<div class="btns"><button type="button" id="pEdit">수정</button><button type="button" id="pMove">날짜 이동</button><button type="button" id="pDel">삭제</button></div>'
+      + '<div class="hint">PC에서는 달력 칸 안의 일정을 끌어서 다른 날짜에 놓아도 돼요.</div>');
+    m.querySelector('#pEdit').addEventListener('click', function(){ PDAdmin.closeModal(); editEvent(e); });
+    m.querySelector('#pMove').addEventListener('click', function(){ PDAdmin.closeModal(); moving = e; renderCalendar(curYm); });
+    m.querySelector('#pDel').addEventListener('click', function(){
+      PDAdmin.closeModal();
+      if(confirm('"'+e.title+'" ('+dlabel(e.date)+') 일정을 삭제할까요?')){
+        events.splice(events.indexOf(e),1); PDAdmin.log('삭제: '+e.title+' '+dlabel(e.date), [pdId]); adminRerender();
+      }
+    });
+  }
+  function editEvent(e){
+    PDAdmin.openEdit({title:e.title, date:e.date, time:e.time, category:e.category, blocks:e.blocks}, function(f){
+      var od = e.date;
+      e.title = f.title; e.date = f.date; e.time = f.time; e.category = f.category; e.blocks = f.blocks;
+      PDAdmin.log('수정: '+f.title+(od!==f.date?' ('+dlabel(od)+' → '+dlabel(f.date)+')':''), [pdId]);
+      selectedDate = f.date; curYm = f.date.slice(0,7); adminRerender();
+    });
+  }
   function admRow(){
     return admin.on ? '<div class="adm-row"><button type="button" data-act="edit">수정</button><button type="button" data-act="move">날짜 이동</button><button type="button" data-act="del" class="danger">삭제</button></div>' : '';
   }
@@ -326,6 +353,8 @@
 
   document.addEventListener('click', function(ev){
     if(!admin.on) return;
+    var pill = ev.target.closest('.apill');
+    if(pill && !moving){ ev.stopPropagation(); var pe = events[parseInt(pill.getAttribute('data-i'),10)]; if(pe) openPillMenu(pe); return; }
     var add = ev.target.closest('.adm-add');
     if(add){
       PDAdmin.openAdd({mode:'single', date:add.getAttribute('data-date'), category:'beginner'}, function(f){
@@ -357,7 +386,7 @@
   });
   document.addEventListener('dragstart', function(ev){
     if(!admin.on) return;
-    var row = ev.target.closest && ev.target.closest('.ev[draggable="true"]'); if(!row) return;
+    var row = ev.target.closest && ev.target.closest('.ev[draggable="true"], .apill[draggable="true"]'); if(!row) return;
     ev.dataTransfer.setData('text/plain', row.getAttribute('data-i')); ev.dataTransfer.effectAllowed = 'move';
   });
   document.addEventListener('dragover', function(ev){

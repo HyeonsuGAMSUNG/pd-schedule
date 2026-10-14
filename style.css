@@ -248,3 +248,13 @@ body.adm-on{padding-bottom:90px}
 
 .ev.adm{flex-wrap:wrap}
 .ev.adm .adm-row{flex-basis:100%}
+
+/* 관리자 모드: 달력 칸 안의 일정 알약(끌어서 옮기기) */
+.apills{display:flex;flex-direction:column;align-items:stretch;gap:2px;width:100%;margin-top:4px}
+.apill{--h:0;display:block;max-width:100%;font-size:.64rem;font-weight:700;line-height:1.3;padding:2px 6px;border-radius:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:grab;background:hsl(var(--h) 70% 90%);color:hsl(var(--h) 60% 24%);border:1px solid hsl(var(--h) 45% 78%)}
+.apill.off{opacity:.55;border-style:dashed}
+.apill:active{cursor:grabbing}
+@media (prefers-color-scheme: dark){.apill{background:hsl(var(--h) 40% 24%);color:hsl(var(--h) 80% 84%);border-color:hsl(var(--h) 35% 36%)}}
+@media (max-width:480px){.apill{font-size:.54rem;padding:1px 3px;letter-spacing:-0.3px}}
+body.adm-on .cal-cell.all, body.adm-on .cal-cell{min-height:96px}
+.pmenu-sub{font-size:.85rem;color:var(--muted);margin-bottom:6px}
