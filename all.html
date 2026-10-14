@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>전체 스케쥴</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800;900&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=20261008c">
+<link rel="stylesheet" href="style.css?v=20261015a">
 <style>
 /* all.html 전용: HTML과 항상 같이 갱신되도록 인라인 */
 .cal-cell.all{aspect-ratio:auto;min-height:112px;justify-content:flex-start;align-items:center;padding:6px 3px 5px}
@@ -32,40 +32,6 @@
 .pdchip.c{background:hsl(var(--h) 85% 90%);border-color:transparent;color:hsl(var(--h) 75% 24%)}
 @media (prefers-color-scheme: dark){.pdchip.c{background:hsl(var(--h) 45% 26%);color:hsl(var(--h) 85% 82%)}}
 
-/* ---- 관리자 편집 ---- */
-.adm-btn{position:absolute;right:16px;bottom:12px;font:inherit;font-size:.7rem;font-weight:700;color:var(--muted);background:var(--chip-bg);border:1px solid var(--border);border-radius:999px;padding:4px 11px;cursor:pointer}
-.adm-btn.on{color:var(--accent-fg);background:var(--accent);border-color:var(--accent)}
-.admbar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:2px solid var(--accent);padding:10px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;box-shadow:0 -4px 14px rgba(0,0,0,.18)}
-.admbar .txt{flex:1;min-width:160px;font-size:.8rem;font-weight:700}
-.admbar button,.adm-row button,.adm-add{font:inherit;font-size:.78rem;font-weight:700;border:1px solid var(--border);background:var(--chip-bg);color:var(--fg);border-radius:8px;padding:6px 12px;cursor:pointer}
-.admbar button.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
-.admbar button:disabled{opacity:.4;cursor:default}
-.adm-row{display:flex;gap:6px;margin-top:2px;padding-left:62px}
-.adm-row button{padding:3px 9px;font-size:.7rem}
-.adm-row button.danger{color:var(--bad)}
-.adm-add{margin-top:10px;width:100%}
-.ev[draggable="true"]{cursor:grab}
-.cal-cell.droptarget{outline:2px dashed var(--accent);outline-offset:-3px}
-.movebanner{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--accent);color:var(--accent-fg);font-size:.82rem;font-weight:700;display:flex;gap:10px;align-items:center;justify-content:space-between}
-.movebanner button{font:inherit;font-size:.75rem;font-weight:700;border:1px solid var(--accent-fg);background:transparent;color:var(--accent-fg);border-radius:8px;padding:3px 10px;cursor:pointer}
-.modal-bg{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.5);display:flex;align-items:flex-end;justify-content:center}
-@media (min-width:600px){.modal-bg{align-items:center}}
-.modal{width:100%;max-width:460px;max-height:92vh;overflow:auto;background:var(--surface);color:var(--fg);border-radius:16px 16px 0 0;padding:18px 18px 22px}
-@media (min-width:600px){.modal{border-radius:16px}}
-.modal h3{font-size:1.05rem;margin-bottom:10px}
-.modal label{display:block;margin-top:12px;font-size:.78rem;font-weight:700;color:var(--muted)}
-.modal input[type=text],.modal input[type=password],.modal input[type=date],.modal input[type=time],.modal select{width:100%;margin-top:4px;font:inherit;font-size:.95rem;padding:9px 10px;border:1px solid var(--border);border-radius:9px;background:var(--bg);color:var(--fg)}
-.modal .chk{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:.88rem;color:var(--fg);font-weight:500}
-.modal .btns{display:flex;gap:8px;margin-top:18px}
-.modal .btns button{flex:1;font:inherit;font-size:.9rem;font-weight:800;padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--chip-bg);color:var(--fg);cursor:pointer}
-.modal .btns button.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
-.modal .hint{margin-top:10px;font-size:.74rem;color:var(--muted);line-height:1.55}
-.modal .err{margin-top:10px;font-size:.8rem;font-weight:700;color:var(--bad)}
-.modal .pdrow{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:.85rem;font-weight:600;color:var(--fg)}
-.modal .pdrow span{flex:1}
-.modal .pdrow select{width:auto;margin:0;font-size:.82rem;padding:5px 6px}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:50;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.82rem;font-weight:700;max-width:90vw}
-body.adm-on{padding-bottom:90px}
 </style>
 </head>
 <body>
@@ -98,6 +64,7 @@ body.adm-on{padding-bottom:90px}
 </div>
 
 <script src="sync-status.js"></script>
+<script src="admin.js?v=1"></script>
 <script>
 (function(){
   var PD_IDS = ['michingamsung','heojunho','sinpureunsol','naseongjun','kimseonhwi','syunta','satsuki'];
@@ -138,8 +105,9 @@ body.adm-on{padding-bottom:90px}
   var active = {};        // pd id -> true (filter)
   var curYm = null, minYm = null, maxYm = null, selectedDate = null;
   var packs = [];
-  var admin = {on:false, token:null, shas:{}};
-  var moving = null, dirty = {}, pending = [];
+  var admin = {};
+  Object.defineProperty(admin, 'on', {get:function(){ return !!(window.PDAdmin && PDAdmin.isOn()); }});
+  var moving = null;
 
   function pad(n){return String(n).length<2?'0'+n:String(n)}
   function todayStr(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
@@ -265,7 +233,7 @@ body.adm-on{padding-bottom:90px}
   function rowHtml(x){
     var timeLabel = x.time ? x.time : '녹화';
     var adm = admin.on ? '<div class="adm-row"><button type="button" data-act="edit">수정</button><button type="button" data-act="move">날짜 이동</button><button type="button" data-act="del" class="danger">삭제</button></div>' : '';
-    return '<div class="ev ev-all'+(x.blocks?'':' is-off')+'" data-key="'+esc(x.key)+'"'+(admin.on?' draggable="true"':'')+'>'
+    return '<div class="ev ev-all'+(x.blocks?'':' is-off')+(admin.on?' adm':'')+'" data-key="'+esc(x.key)+'"'+(admin.on?' draggable="true"':'')+'>'
       + '<div class="ev-line"><span class="time mono">'+timeLabel+'</span>'
       + '<span class="title">'+esc(x.title)+'</span>'+tagHtml(x.category)+'</div>'
       + peopleHtml(x) + conflictNoteFor(x) + adm
@@ -476,336 +444,99 @@ body.adm-on{padding-bottom:90px}
     });
   }
   // =====================================================================
-  // 관리자 편집: 비밀번호로 잠금 해제 → 눌러서/끌어서 일정 이동 → GitHub에 저장
-  //  - 비밀번호는 서버로 보내지 않고, 이 브라우저에 암호화해 둔 GitHub 토큰을 여는 데만 써요.
-  //  - 저장은 GitHub API로 data/*.json 파일을 직접 수정(commit)하는 방식이라 Claude와 무관하게 동작해요.
+  // 관리자 편집 (공용 admin.js 사용) — 전체 스케쥴: 여러 PD의 같은 수업을 한 줄로 합쳐 보여주므로
+  // 수정/이동/삭제는 합쳐진 수업에 속한 모든 PD 항목(srcs)에 한꺼번에 적용해요.
   // =====================================================================
-  var GH = {owner:'HyeonsuGAMSUNG', repo:'pd-schedule', branch:'main'};
-  var LS_KEY = 'pd_admin_v1';
-
   function tagPacks(){
     packs.forEach(function(p){
       p.events.forEach(function(e){ Object.defineProperty(e, '_pd', {value:p.id, writable:true, enumerable:false, configurable:true}); });
     });
   }
-
-  function b64e(str){
-    var bytes = new TextEncoder().encode(str), bin = '';
-    for(var i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
-    return btoa(bin);
-  }
-  function b64d(b64){
-    var bin = atob(b64.replace(/\s/g,'')), bytes = new Uint8Array(bin.length);
-    for(var i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
-    return new TextDecoder().decode(bytes);
-  }
-  function u8ToB64(u8){ var s=''; for(var i=0;i<u8.length;i++) s += String.fromCharCode(u8[i]); return btoa(s); }
-  function b64ToU8(b){ var s=atob(b), u=new Uint8Array(s.length); for(var i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; }
-
-  function deriveKey(pw, salt){
-    return crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']).then(function(km){
-      return crypto.subtle.deriveKey({name:'PBKDF2', salt:salt, iterations:250000, hash:'SHA-256'}, km, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
-    });
-  }
-  function encryptToken(token, pw){
-    var salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
-    return deriveKey(pw, salt).then(function(key){
-      return crypto.subtle.encrypt({name:'AES-GCM', iv:iv}, key, new TextEncoder().encode(token));
-    }).then(function(buf){
-      return {s:u8ToB64(salt), i:u8ToB64(iv), c:u8ToB64(new Uint8Array(buf))};
-    });
-  }
-  function decryptToken(blob, pw){
-    return deriveKey(pw, b64ToU8(blob.s)).then(function(key){
-      return crypto.subtle.decrypt({name:'AES-GCM', iv:b64ToU8(blob.i)}, key, b64ToU8(blob.c));
-    }).then(function(buf){ return new TextDecoder().decode(buf); });
-  }
-  function getBlob(){ try{ var v = localStorage.getItem(LS_KEY); return v ? JSON.parse(v) : null; }catch(e){ return null; } }
-  function setBlob(b){ try{ localStorage.setItem(LS_KEY, JSON.stringify(b)); return true; }catch(e){ return false; } }
-  function clearBlob(){ try{ localStorage.removeItem(LS_KEY); }catch(e){} }
-
-  function gh(path, opt){
-    opt = opt || {};
-    var headers = {'Accept':'application/vnd.github+json', 'Authorization':'Bearer '+admin.token};
-    if(opt.body) headers['Content-Type'] = 'application/json';
-    return fetch('https://api.github.com/repos/'+GH.owner+'/'+GH.repo+path, {method:opt.method||'GET', headers:headers, body:opt.body, cache:'no-store'});
-  }
-
-  // ---------- 모달/토스트 ----------
-  function toast(msg){
-    var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
-    document.body.appendChild(t); setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 4200);
-  }
-  function openModal(html){
-    closeModal();
-    var bg = document.createElement('div'); bg.className = 'modal-bg'; bg.id = 'modalBg';
-    bg.innerHTML = '<div class="modal" role="dialog">'+html+'</div>';
-    bg.addEventListener('click', function(ev){ if(ev.target===bg) closeModal(); });
-    document.body.appendChild(bg);
-    return bg.firstChild;
-  }
-  function closeModal(){ var b = document.getElementById('modalBg'); if(b) b.parentNode.removeChild(b); }
-
-  // ---------- 잠금 해제 / 최초 설정 ----------
-  function showAuth(){
-    var blob = getBlob();
-    if(!window.crypto || !crypto.subtle){ toast('이 브라우저에서는 관리자 기능을 쓸 수 없어요 (https 필요)'); return; }
-    if(blob){
-      var m = openModal('<h3>관리자 잠금 해제</h3><label>비밀번호<input type="password" id="admPw" autocomplete="current-password"></label>'
-        + '<div class="err" id="admErr" style="display:none"></div>'
-        + '<div class="btns"><button type="button" id="admCancel">취소</button><button type="button" class="pri" id="admOk">열기</button></div>'
-        + '<div class="hint"><a href="#" id="admReset">이 기기의 관리자 설정 지우기</a></div>');
-      var pw = m.querySelector('#admPw'); pw.focus();
-      function go(){
-        var err = m.querySelector('#admErr'); err.style.display = 'none';
-        decryptToken(blob, pw.value).then(function(tok){ unlock(tok); }).catch(function(){
-          err.textContent = '비밀번호가 맞지 않아요.'; err.style.display = 'block';
-        });
-      }
-      m.querySelector('#admOk').addEventListener('click', go);
-      pw.addEventListener('keydown', function(e){ if(e.key==='Enter') go(); });
-      m.querySelector('#admCancel').addEventListener('click', closeModal);
-      m.querySelector('#admReset').addEventListener('click', function(e){
-        e.preventDefault();
-        if(confirm('이 기기에 저장된 관리자 설정(암호화된 토큰)을 지울까요?')){ clearBlob(); closeModal(); toast('관리자 설정을 지웠어요'); }
-      });
-    } else {
-      var s = openModal('<h3>관리자 최초 설정 (이 기기에서 1번만)</h3>'
-        + '<label>GitHub 토큰<input type="password" id="admTok" autocomplete="off" placeholder="github_pat_..."></label>'
-        + '<label>새 관리자 비밀번호<input type="password" id="admPw1" autocomplete="new-password"></label>'
-        + '<label>비밀번호 확인<input type="password" id="admPw2" autocomplete="new-password"></label>'
-        + '<div class="err" id="admErr" style="display:none"></div>'
-        + '<div class="btns"><button type="button" id="admCancel">취소</button><button type="button" class="pri" id="admOk">저장하고 열기</button></div>'
-        + '<div class="hint">토큰은 GitHub → Settings → Developer settings → Fine-grained tokens에서 이 저장소(pd-schedule)만 선택하고 <b>Contents: Read and write</b> 권한으로 만들어요. 토큰은 비밀번호로 암호화되어 <b>이 기기 브라우저에만</b> 저장되고, 서버로 보내지지 않아요. 다른 기기에서는 그 기기에서 한 번 더 설정해야 해요.</div>');
-      s.querySelector('#admCancel').addEventListener('click', closeModal);
-      s.querySelector('#admOk').addEventListener('click', function(){
-        var err = s.querySelector('#admErr'); err.style.display = 'none';
-        var tok = s.querySelector('#admTok').value.trim(), p1 = s.querySelector('#admPw1').value, p2 = s.querySelector('#admPw2').value;
-        function fail(t){ err.textContent = t; err.style.display = 'block'; }
-        if(!tok) return fail('토큰을 입력해 주세요.');
-        if(p1.length < 8) return fail('비밀번호는 8자 이상으로 해 주세요.');
-        if(p1 !== p2) return fail('비밀번호 확인이 달라요.');
-        admin.token = tok;
-        gh('').then(function(r){
-          if(!r.ok) throw new Error('토큰으로 저장소에 접근할 수 없어요 ('+r.status+').');
-          return r.json();
-        }).then(function(repo){
-          if(!repo.permissions || !repo.permissions.push) throw new Error('이 토큰에는 쓰기 권한(Contents: Read and write)이 없어요.');
-          return encryptToken(tok, p1);
-        }).then(function(blob){
-          if(!setBlob(blob)) throw new Error('이 브라우저에 저장할 수 없어요 (사생활 보호 모드?).');
-          unlock(tok);
-        }).catch(function(e){ admin.token = null; fail(e.message || '설정에 실패했어요.'); });
-      });
-    }
-  }
-
-  function unlock(tok){
-    admin.token = tok;
-    var m = openModal('<h3>일정 불러오는 중…</h3><div class="hint">GitHub에서 최신 일정을 직접 읽어 와요.</div>');
-    loadFromGithub().then(function(){
-      admin.on = true; dirty = {}; pending = []; moving = null;
-      document.body.classList.add('adm-on');
-      var b = document.getElementById('admBtn'); b.textContent = '편집 중'; b.classList.add('on');
-      closeModal(); buildAdminBar(); rebuild();
-      toast('편집 모드예요. 일정을 끌어서 날짜 칸에 놓거나 [수정]을 눌러요.');
-    }).catch(function(e){ admin.token = null; closeModal(); toast('불러오기에 실패했어요: '+(e.message||e)); });
-  }
-
-  function lockAdmin(){
-    if(Object.keys(dirty).length && !confirm('저장하지 않은 변경이 있어요. 버리고 나갈까요?')) return;
-    admin.on = false; admin.token = null; moving = null; dirty = {}; pending = [];
-    document.body.classList.remove('adm-on');
-    var b = document.getElementById('admBtn'); b.textContent = '관리자'; b.classList.remove('on');
-    var bar = document.getElementById('admBar'); if(bar) bar.parentNode.removeChild(bar);
-    load();
-  }
-
-  function loadFromGithub(){
-    return Promise.all(pds.map(function(p){
-      return gh('/contents/data/'+p.id+'.json?ref='+GH.branch).then(function(r){
-        if(!r.ok) throw new Error(p.id+'.json 읽기 실패 ('+r.status+')');
-        return r.json();
-      }).then(function(j){
-        admin.shas[p.id] = j.sha;
-        return {id:p.id, events:JSON.parse(b64d(j.content))};
-      });
-    })).then(function(loaded){ packs = loaded; tagPacks(); });
-  }
-
-  // ---------- 하단 관리자 바 ----------
-  function buildAdminBar(){
-    var bar = document.getElementById('admBar');
-    if(!bar){ bar = document.createElement('div'); bar.id = 'admBar'; bar.className = 'admbar'; document.body.appendChild(bar); }
-    bar.innerHTML = '<span class="txt" id="admTxt"></span>'
-      + '<button type="button" id="admUndo">되돌리기</button>'
-      + '<button type="button" class="pri" id="admSave">저장</button>'
-      + '<button type="button" id="admOut">나가기</button>';
-    bar.querySelector('#admSave').addEventListener('click', saveAll);
-    bar.querySelector('#admUndo').addEventListener('click', function(){
-      if(!Object.keys(dirty).length) return;
-      if(!confirm('저장하지 않은 변경을 모두 되돌릴까요?')) return;
-      loadFromGithub().then(function(){ dirty = {}; pending = []; moving = null; rebuild(); toast('되돌렸어요'); });
-    });
-    bar.querySelector('#admOut').addEventListener('click', lockAdmin);
-    updateAdminBar();
-  }
-  function updateAdminBar(){
-    if(!admin.on) return;
-    var n = pending.length, t = document.getElementById('admTxt');
-    if(t) t.textContent = n ? ('저장 안 된 변경 '+n+'건') : '편집 모드 · 변경 없음';
-    var sv = document.getElementById('admSave'), un = document.getElementById('admUndo');
-    if(sv) sv.disabled = !n; if(un) un.disabled = !n;
-  }
-
-  // ---------- 다시 그리기 ----------
   function rebuild(){
     merged = mergeAll(packs);
     conflicts = computeConflicts(merged);
     indexConflicts();
     if(merged.length){ minYm = merged[0].date.slice(0,7); maxYm = merged[merged.length-1].date.slice(0,7); }
     if(selectedDate){ if(selectedDate.slice(0,7) < minYm) minYm = selectedDate.slice(0,7); if(selectedDate.slice(0,7) > maxYm) maxYm = selectedDate.slice(0,7); }
-    renderAll(); updateAdminBar();
+    renderAll(); PDAdmin.updateBar();
   }
   function findX(key){ for(var i=0;i<merged.length;i++) if(merged[i].key===key) return merged[i]; return null; }
   function dlabel(ds){ var p=ds.split('-').map(Number); return p[1]+'/'+p[2]+'('+DOW[dowOf(ds)]+')'; }
+  function pdsOf(x){ var o = {}; x.srcs.forEach(function(s){ o[s.pd] = 1; }); return Object.keys(o); }
 
-  // ---------- 편집 동작 ----------
-  function doMove(key, newDate){
-    var x = findX(key); moving = null;
-    if(!x || x.date===newDate){ renderCalendar(curYm); return; }
-    var old = x.date;
-    applyEdit(x, {title:x.title, date:newDate, time:x.time, category:x.category, blocks:x.blocks});
-    pending.push('이동: '+cleanTitle(x.title)+' '+dlabel(old)+' → '+dlabel(newDate));
-    selectedDate = newDate; curYm = newDate.slice(0,7);
-    rebuild();
-  }
   function applyEdit(x, f){
     var titleChanged = f.title !== x.title;
     x.srcs.forEach(function(s){
       var e = s.e;
       e.date = f.date; e.time = f.time || null; e.category = f.category;
       if(f.blocks !== x.blocks && e.blocks === x.blocks) e.blocks = f.blocks;
-      if(titleChanged && e.blocks === (f.blocks)){ e.title = s.role==='int' ? cleanTitle(f.title)+' (통역)' : f.title; }
-      dirty[s.pd] = true;
+      if(titleChanged && e.blocks === f.blocks){ e.title = s.role==='int' ? cleanTitle(f.title)+' (통역)' : f.title; }
     });
+  }
+  function doMove(key, newDate){
+    var x = findX(key); moving = null;
+    if(!x || x.date===newDate){ renderCalendar(curYm); return; }
+    var old = x.date, pdl = pdsOf(x);
+    applyEdit(x, {title:x.title, date:newDate, time:x.time, category:x.category, blocks:x.blocks});
+    PDAdmin.log('이동: '+cleanTitle(x.title)+' '+dlabel(old)+' → '+dlabel(newDate), pdl);
+    selectedDate = newDate; curYm = newDate.slice(0,7);
+    rebuild();
   }
   function deleteX(x){
     x.srcs.forEach(function(s){
       var p = packs.filter(function(q){ return q.id===s.pd; })[0];
       var i = p.events.indexOf(s.e); if(i>=0) p.events.splice(i,1);
-      dirty[s.pd] = true;
     });
   }
-  function catOptions(sel){
-    return Object.keys(CATS).map(function(k){ return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+esc(CATS[k].label)+'</option>'; }).join('');
-  }
-  function openEdit(x){
-    var m = openModal('<h3>일정 수정</h3>'
-      + '<label>제목<input type="text" id="fTitle" value="'+esc(cleanTitle(x.title)).replace(/"/g,'&quot;')+'"></label>'
-      + '<label>날짜<input type="date" id="fDate" value="'+x.date+'"></label>'
-      + '<label>시간 (비우면 시간 없음)<input type="time" id="fTime" value="'+(x.time||'')+'"></label>'
-      + '<label>분류<select id="fCat">'+catOptions(x.category)+'</select></label>'
-      + '<label class="chk"><input type="checkbox" id="fBlocks"'+(x.blocks?' checked':'')+'> 수업 있음 (체크 해제하면 일정 아님·초록색)</label>'
-      + '<div class="btns"><button type="button" id="fCancel">취소</button><button type="button" class="pri" id="fOk">적용</button></div>');
-    m.querySelector('#fCancel').addEventListener('click', closeModal);
-    m.querySelector('#fOk').addEventListener('click', function(){
-      var title = m.querySelector('#fTitle').value.trim(), date = m.querySelector('#fDate').value;
-      if(!title || !date){ toast('제목과 날짜를 입력해 주세요'); return; }
-      var f = {title:title, date:date, time:m.querySelector('#fTime').value || null, category:m.querySelector('#fCat').value, blocks:m.querySelector('#fBlocks').checked};
-      var origTitle = x.title, origDate = x.date;
-      var same = (cleanTitle(origTitle)===title);
-      if(same) f.title = x.title;
+  function openEditX(x){
+    PDAdmin.openEdit({title:cleanTitle(x.title), date:x.date, time:x.time, category:x.category, blocks:x.blocks}, function(f){
+      var origDate = x.date, pdl = pdsOf(x);
+      if(cleanTitle(x.title)===f.title) f.title = x.title;
       applyEdit(x, f);
-      pending.push('수정: '+title+(origDate!==date?' ('+dlabel(origDate)+' → '+dlabel(date)+')':''));
-      selectedDate = date; curYm = date.slice(0,7);
-      closeModal(); rebuild();
+      PDAdmin.log('수정: '+f.title+(origDate!==f.date?' ('+dlabel(origDate)+' → '+dlabel(f.date)+')':''), pdl);
+      selectedDate = f.date; curYm = f.date.slice(0,7);
+      rebuild();
     });
   }
-  function openAdd(date){
-    var rows = pds.map(function(p){
-      return '<div class="pdrow"><span>'+esc(pdName[p.id]||p.id)+'</span><select data-pd="'+p.id+'"><option value="">-</option><option value="main">강의·진행</option><option value="int">통역</option></select></div>';
-    }).join('');
-    var m = openModal('<h3>일정 추가</h3>'
-      + '<label>제목<input type="text" id="aTitle" placeholder="예: AI 아티스트 9회차"></label>'
-      + '<label>날짜<input type="date" id="aDate" value="'+(date||'')+'"></label>'
-      + '<label>시간 (비우면 시간 없음)<input type="time" id="aTime" value="19:00"></label>'
-      + '<label>분류<select id="aCat">'+catOptions('album')+'</select></label>'
-      + '<label class="chk"><input type="checkbox" id="aBlocks" checked> 수업 있음</label>'
-      + '<label>참여 PD (최소 1명)</label>'+rows
-      + '<div class="btns"><button type="button" id="aCancel">취소</button><button type="button" class="pri" id="aOk">추가</button></div>');
-    m.querySelector('#aCancel').addEventListener('click', closeModal);
-    m.querySelector('#aOk').addEventListener('click', function(){
-      var title = m.querySelector('#aTitle').value.trim(), d = m.querySelector('#aDate').value;
-      var who = [].slice.call(m.querySelectorAll('select[data-pd]')).filter(function(s){ return s.value; }).map(function(s){ return {pd:s.getAttribute('data-pd'), role:s.value}; });
-      if(!title || !d){ toast('제목과 날짜를 입력해 주세요'); return; }
-      if(!who.length){ toast('참여 PD를 1명 이상 골라 주세요'); return; }
-      var time = m.querySelector('#aTime').value || null, cat = m.querySelector('#aCat').value, blocks = m.querySelector('#aBlocks').checked;
+  function openAddX(date){
+    PDAdmin.openAdd({mode:'multi', date:date, category:'album'}, function(f, who){
+      var ids = [];
       who.forEach(function(w){
         var p = packs.filter(function(q){ return q.id===w.pd; })[0];
-        var e = {date:d, time:time, title:(w.role==='int' ? cleanTitle(title)+' (통역)' : title), category:cat, blocks:blocks};
+        var e = {date:f.date, time:f.time, title:(w.role==='int' ? cleanTitle(f.title)+' (통역)' : f.title), category:f.category, blocks:f.blocks};
         Object.defineProperty(e, '_pd', {value:w.pd, writable:true, enumerable:false, configurable:true});
-        p.events.push(e); dirty[w.pd] = true;
+        p.events.push(e); ids.push(w.pd);
       });
-      pending.push('추가: '+title+' '+dlabel(d));
-      selectedDate = d; curYm = d.slice(0,7);
-      closeModal(); rebuild();
+      PDAdmin.log('추가: '+f.title+' '+dlabel(f.date), ids);
+      selectedDate = f.date; curYm = f.date.slice(0,7);
+      rebuild();
     });
   }
 
-  // ---------- 저장 ----------
-  function serialize(arr){
-    var a = arr.slice().sort(function(x,y){
-      if(x.date!==y.date) return x.date<y.date?-1:1;
-      var tx = x.time||'', ty = y.time||''; return tx<ty?-1:(tx>ty?1:0);
-    });
-    if(!a.length) return '[]\n';
-    return '[\n'+a.map(function(e){ return JSON.stringify(e); }).join(',\n')+'\n]\n';
-  }
-  function saveAll(){
-    var ids = Object.keys(dirty);
-    if(!ids.length) return;
-    var sv = document.getElementById('admSave'); sv.disabled = true; sv.textContent = '저장 중…';
-    var summary = pending.slice(0,3).join(', ')+(pending.length>3?' 외 '+(pending.length-3)+'건':'');
-    var chain = Promise.resolve();
-    ids.forEach(function(id){
-      chain = chain.then(function(){
-        var p = packs.filter(function(q){ return q.id===id; })[0];
-        return gh('/contents/data/'+id+'.json', {method:'PUT', body:JSON.stringify({
-          message:'admin: '+summary+' ['+id+']', content:b64e(serialize(p.events)), sha:admin.shas[id], branch:GH.branch
-        })}).then(function(r){
-          if(r.status===409 || r.status===422) throw new Error('다른 곳에서 먼저 일정이 바뀌었어요. [되돌리기]로 최신 일정을 다시 불러온 뒤 다시 편집해 주세요.');
-          if(!r.ok) throw new Error('저장 실패 ('+r.status+')');
-          return r.json();
-        }).then(function(j){ admin.shas[id] = j.content.sha; delete dirty[id]; });
-      });
-    });
-    chain.then(function(){
-      pending = []; sv.textContent = '저장'; updateAdminBar();
-      toast('저장했어요. 1분쯤 뒤 모든 사람 화면에 반영돼요.');
-    }).catch(function(e){
-      sv.textContent = '저장'; sv.disabled = false; updateAdminBar(); toast(e.message || '저장에 실패했어요');
-    });
-  }
-
-  // ---------- 이벤트 연결 ----------
-  document.getElementById('admBtn').addEventListener('click', function(){
-    if(admin.on){ lockAdmin(); } else { showAuth(); }
+  PDAdmin.init({
+    btn: document.getElementById('admBtn'),
+    cats: CATS,
+    getPds: function(){ return pds; },
+    onEnter: function(){ return PDAdmin.loadPacks(PD_IDS).then(function(l){ packs = l; tagPacks(); moving = null; }); },
+    onExit: function(){ moving = null; load(); },
+    rerender: rebuild,
+    getFiles: function(){ return packs.map(function(p){ return {key:p.id, path:'data/'+p.id+'.json', text:PDAdmin.serialize(p.events)}; }); }
   });
+
   document.addEventListener('click', function(ev){
     if(!admin.on) return;
     var add = ev.target.closest('.adm-add');
-    if(add){ openAdd(add.getAttribute('data-date')); return; }
+    if(add){ openAddX(add.getAttribute('data-date')); return; }
     var btn = ev.target.closest('.adm-row button');
     if(!btn) return;
     var row = btn.closest('.ev'); var x = row && findX(row.getAttribute('data-key'));
     if(!x) return;
     var act = btn.getAttribute('data-act');
-    if(act==='edit') openEdit(x);
+    if(act==='edit') openEditX(x);
     else if(act==='move'){ moving = x.key; renderCalendar(curYm); document.getElementById('calArea').scrollIntoView({behavior:'smooth', block:'start'}); }
     else if(act==='del'){
       if(confirm('"'+cleanTitle(x.title)+'" ('+dlabel(x.date)+') 일정을 삭제할까요?')){
-        deleteX(x); pending.push('삭제: '+cleanTitle(x.title)+' '+dlabel(x.date)); rebuild();
+        var pdl = pdsOf(x); deleteX(x); PDAdmin.log('삭제: '+cleanTitle(x.title)+' '+dlabel(x.date), pdl); rebuild();
       }
     }
   });
@@ -829,9 +560,6 @@ body.adm-on{padding-bottom:90px}
     ev.preventDefault(); cell.classList.remove('droptarget');
     var key = ev.dataTransfer.getData('text/plain');
     if(key) doMove(key, cell.getAttribute('data-date'));
-  });
-  window.addEventListener('beforeunload', function(ev){
-    if(admin.on && Object.keys(dirty).length){ ev.preventDefault(); ev.returnValue = ''; }
   });
 
   PDSync.ready.then(load);

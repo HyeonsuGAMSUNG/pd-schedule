@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PD 스케쥴 관리</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800;900&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=20261008c">
+<link rel="stylesheet" href="style.css?v=20261015a">
 </head>
 <body>
 
@@ -16,6 +16,7 @@
       <span class="tag-rec">REC</span>
     </div>
     <div class="sub">PD를 선택하면 해당 스케쥴표로 이동해요.</div>
+    <button type="button" class="adm-btn" id="admBtn">관리자</button>
   </div>
 </header>
 
@@ -31,25 +32,103 @@
 </div>
 
 <script src="sync-status.js"></script>
+<script src="admin.js?v=1"></script>
 <script>
+var pdsData = [], newFiles = [];
+var adminOn = function(){ return !!(window.PDAdmin && PDAdmin.isOn()); };
+function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function renderPds(){
+  var list = document.getElementById('pdList');
+  var on = adminOn();
+  if(!pdsData.length){
+    list.innerHTML = '<div class="empty">등록된 PD가 아직 없어요.</div>' + (on ? '<button type="button" class="adm-add" id="addPd">+ PD 추가</button>' : '');
+    return;
+  }
+  list.innerHTML = pdsData.map(function(pd, i){
+    var card = '<a class="pd-card" href="schedule.html?pd='+encodeURIComponent(pd.id)+'">'
+      + '<span><span class="name">'+esc(pd.name)+'</span><div class="desc">'+esc(pd.desc||'')+'</div></span>'
+      + '<span class="arrow">›</span></a>';
+    if(!on) return card;
+    return '<div class="pd-wrap" data-i="'+i+'">'+card
+      + '<div class="adm-row" style="padding-left:4px"><button type="button" data-act="edit">이름·설명 수정</button>'
+      + '<button type="button" data-act="up">▲</button><button type="button" data-act="down">▼</button>'
+      + '<button type="button" data-act="del" class="danger">삭제</button></div></div>';
+  }).join('') + (on ? '<button type="button" class="adm-add" id="addPd">+ PD 추가</button>' : '');
+}
 function loadPds(){
+  if(adminOn()) return Promise.resolve();
   return fetch(PDSync.bust('data/pds.json'), {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(pds){
-    var list = document.getElementById('pdList');
-    if(!pds.length){
-      list.innerHTML = '<div class="empty">등록된 PD가 아직 없어요.</div>';
-      return;
-    }
-    list.innerHTML = pds.map(function(pd){
-      return '<a class="pd-card" href="schedule.html?pd='+encodeURIComponent(pd.id)+'">'
-        + '<span><span class="name">'+pd.name+'</span><div class="desc">'+(pd.desc||'')+'</div></span>'
-        + '<span class="arrow">›</span></a>';
-    }).join('');
+    pdsData = pds; renderPds();
   }).catch(function(){
     document.getElementById('pdList').innerHTML = '<div class="empty">PD 목록을 불러오지 못했어요.</div>';
   });
 }
 PDSync.ready.then(loadPds);
 PDSync.onUpdate(loadPds);
+
+// ---------- 관리자: PD 카드 편집 ----------
+PDAdmin.init({
+  btn: document.getElementById('admBtn'),
+  cats: {},
+  getPds: function(){ return pdsData; },
+  onEnter: function(){ newFiles = []; return PDAdmin.fetchFile('data/pds.json', 'pds').then(function(arr){ pdsData = arr; }); },
+  onExit: function(){ newFiles = []; loadPds(); },
+  rerender: renderPds,
+  getFiles: function(){
+    var out = [{key:'pds', path:'data/pds.json', text:JSON.stringify(pdsData, null, 2)+'\n'}];
+    newFiles.forEach(function(id){ out.push({key:'new:'+id, path:'data/'+id+'.json', text:'[]\n', isNew:true}); });
+    return out;
+  }
+});
+document.getElementById('pdList').addEventListener('click', function(ev){
+  if(!adminOn()) return;
+  if(ev.target.closest('#addPd')){
+    var m = PDAdmin.openModal('<h3>PD 추가</h3>'
+      + '<label>영문 아이디 (소문자·숫자, 예: kimmina)<input type="text" id="nId"></label>'
+      + '<label>표시 이름 (예: 김민아 PD)<input type="text" id="nName"></label>'
+      + '<label>설명 (예: 초급반, 수노 플리)<input type="text" id="nDesc"></label>'
+      + '<div class="err" id="nErr" style="display:none"></div>'
+      + '<div class="btns"><button type="button" id="nCancel">취소</button><button type="button" class="pri" id="nOk">추가</button></div>');
+    m.querySelector('#nCancel').addEventListener('click', PDAdmin.closeModal);
+    m.querySelector('#nOk').addEventListener('click', function(){
+      var id = m.querySelector('#nId').value.trim().toLowerCase(), name = m.querySelector('#nName').value.trim(), desc = m.querySelector('#nDesc').value.trim();
+      var err = m.querySelector('#nErr');
+      var fail = function(t){ err.textContent = t; err.style.display = 'block'; };
+      if(!/^[a-z0-9]{2,30}$/.test(id)) return fail('아이디는 영문 소문자·숫자 2~30자로 해 주세요.');
+      if(!name) return fail('표시 이름을 입력해 주세요.');
+      if(pdsData.some(function(p){ return p.id===id; })) return fail('이미 있는 아이디예요.');
+      pdsData.push({id:id, name:name, desc:desc}); newFiles.push(id);
+      PDAdmin.log('PD 추가: '+name, ['pds','new:'+id]);
+      PDAdmin.closeModal(); renderPds();
+    });
+    return;
+  }
+  var btn = ev.target.closest('.adm-row button'); if(!btn) return;
+  var wrap = btn.closest('.pd-wrap'); var i = parseInt(wrap.getAttribute('data-i'),10), pd = pdsData[i];
+  var act = btn.getAttribute('data-act');
+  if(act==='edit'){
+    var m2 = PDAdmin.openModal('<h3>PD 이름·설명 수정</h3>'
+      + '<label>표시 이름<input type="text" id="eName" value="'+esc(pd.name)+'"></label>'
+      + '<label>설명<input type="text" id="eDesc" value="'+esc(pd.desc||'')+'"></label>'
+      + '<div class="btns"><button type="button" id="eCancel">취소</button><button type="button" class="pri" id="eOk">적용</button></div>');
+    m2.querySelector('#eCancel').addEventListener('click', PDAdmin.closeModal);
+    m2.querySelector('#eOk').addEventListener('click', function(){
+      var n = m2.querySelector('#eName').value.trim(); if(!n) return;
+      pd.name = n; pd.desc = m2.querySelector('#eDesc').value.trim();
+      PDAdmin.log('PD 수정: '+n, ['pds']); PDAdmin.closeModal(); renderPds();
+    });
+  } else if(act==='up' || act==='down'){
+    var j = act==='up' ? i-1 : i+1; if(j<0 || j>=pdsData.length) return;
+    var t = pdsData[i]; pdsData[i] = pdsData[j]; pdsData[j] = t;
+    PDAdmin.log('PD 순서 변경: '+pd.name, ['pds']); renderPds();
+  } else if(act==='del'){
+    if(confirm('"'+pd.name+'" 카드를 목록에서 뺄까요?\n(일정 파일은 그대로 남아 있어서 나중에 다시 추가할 수 있어요.)')){
+      pdsData.splice(i,1); newFiles = newFiles.filter(function(id){ return id!==pd.id; });
+      PDAdmin.log('PD 삭제: '+pd.name, ['pds']); renderPds();
+    }
+  }
+});
 </script>
 
 </body>

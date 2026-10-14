@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title id="pageTitle">PD 스케쥴</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800;900&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=20261008c">
+<link rel="stylesheet" href="style.css?v=20261015a">
 </head>
 <body>
 
@@ -17,6 +17,7 @@
       <span class="tag-rec">REC</span>
     </div>
     <div class="sub" id="syncNote">데이터 불러오는 중…</div>
+    <button type="button" class="adm-btn" id="admBtn">관리자</button>
   </div>
 </header>
 
@@ -33,6 +34,7 @@
 </div>
 
 <script src="sync-status.js"></script>
+<script src="admin.js?v=1"></script>
 <script>
 (function(){
   var CATS = {
@@ -75,6 +77,9 @@
   var minYm = null, maxYm = null;
   var curYm = null;
   var selectedDate = null;
+  var admin = {};
+  Object.defineProperty(admin, 'on', {get:function(){ return !!(window.PDAdmin && PDAdmin.isOn()); }});
+  var moving = null;
 
   function pad(n){return String(n).length<2?'0'+n:String(n)}
   function todayStr(){
@@ -116,16 +121,18 @@
 
     var listHtml = dayEvents.map(function(e){
       var timeLabel = e.time ? e.time : '녹화';
-      return '<li class="ev'+(e.blocks?'':' is-off')+'">'
+      return '<li class="ev'+(e.blocks?'':' is-off')+(admin.on?' adm':'')+'" data-i="'+events.indexOf(e)+'"'+(admin.on?' draggable="true"':'')+'>'
         + '<span class="time mono">'+timeLabel+'</span>'
         + '<span class="title">'+e.title+'</span>'
         + tagHtml(e.category)
+        + admRow()
         + '</li>';
     }).join('');
 
     return '<div class="dd-head"><span class="pill '+pillCls+'">'+pillText+'</span>'
       + '<span class="dd-date mono">'+fmtKDate(dateStr)+' ('+dow+')</span></div>'
-      + (dayEvents.length ? '<ul class="dd-list">'+listHtml+'</ul>' : '<div class="dd-empty">등록된 일정이 없어요.</div>');
+      + (dayEvents.length ? '<ul class="dd-list">'+listHtml+'</ul>' : '<div class="dd-empty">등록된 일정이 없어요.</div>')
+      + (admin.on ? '<button type="button" class="adm-add" data-date="'+dateStr+'">+ 이 날짜에 일정 추가</button>' : '');
   }
 
   function selectDay(dateStr){
@@ -172,6 +179,7 @@
       + '<button id="nextBtn" '+(ym>=maxYm?'disabled':'')+'>›</button>'
       + '</div>'
       + '<div class="legend"><span><span class="sw free"></span>비어있음</span><span><span class="sw busy"></span>일정 있음</span></div>'
+      + (admin.on && moving ? '<div class="movebanner"><span>옮길 날짜를 눌러 주세요</span><button type="button" id="moveCancel">취소</button></div>' : '')
       + '<div class="cal-dow">'+DOW.map(function(w){return '<span>'+w+'</span>'}).join('')+'</div>'
       + '<div class="cal-grid" id="calGrid">'+cells.join('')+'</div>'
       + '<div class="day-detail" id="dayDetail"></div>';
@@ -181,8 +189,11 @@
     document.getElementById('calGrid').addEventListener('click', function(ev){
       var cell = ev.target.closest('.cal-cell');
       if(!cell || cell.classList.contains('pad')) return;
+      if(admin.on && moving){ doMove(cell.getAttribute('data-date')); return; }
       selectDay(cell.getAttribute('data-date'));
     });
+    var mc = document.getElementById('moveCancel');
+    if(mc) mc.addEventListener('click', function(){ moving = null; renderCalendar(curYm); });
 
     var dd = document.getElementById('dayDetail');
     dd.innerHTML = (selectedDate && selectedDate.slice(0,7)===ym)
@@ -217,10 +228,11 @@
         var isToday = dk === today;
         var evHtml = evs.map(function(e){
           var timeLabel = e.time ? e.time : '녹화';
-          return '<div class="ev'+(e.blocks?'':' is-off')+'">'
+          return '<div class="ev'+(e.blocks?'':' is-off')+(admin.on?' adm':'')+'" data-i="'+events.indexOf(e)+'"'+(admin.on?' draggable="true"':'')+'>'
             + '<span class="time mono">'+timeLabel+'</span>'
             + '<span class="title">'+e.title+'</span>'
             + tagHtml(e.category)
+            + admRow()
             + '</div>';
         }).join('');
         return '<div class="day"><div class="day-head"><span class="date-num">'+mnum+'/'+dnum+'</span>'
@@ -232,6 +244,7 @@
 
   var pdId = getParam('pd');
   function load(){
+    if(admin.on) return Promise.resolve();
     return Promise.all([
       fetch(PDSync.bust('data/pds.json'), {cache:'no-store'}).then(function(r){ return r.json(); }).catch(function(){ return []; }),
       fetch(PDSync.bust('data/'+pdId+'.json'), {cache:'no-store'}).then(function(r){
@@ -268,6 +281,102 @@
       document.getElementById('calArea').innerHTML = '<div class="empty">해당 PD의 일정 파일을 찾을 수 없어요.</div>';
     });
   }
+
+  // =====================================================================
+  // 관리자 편집 (공용 admin.js 사용) — 이 PD의 data/<pd>.json 만 고쳐요.
+  // =====================================================================
+  function admRow(){
+    return admin.on ? '<div class="adm-row"><button type="button" data-act="edit">수정</button><button type="button" data-act="move">날짜 이동</button><button type="button" data-act="del" class="danger">삭제</button></div>' : '';
+  }
+  function dlabel(ds){ var q=ds.split('-').map(Number); return q[1]+'/'+q[2]+'('+DOW[dowOf(ds)]+')'; }
+  function sortEvents(){ events.sort(function(a,b){ return a.date<b.date?-1:(a.date>b.date?1:0); }); }
+  function rebuildByDate(){
+    byDate = {};
+    events.forEach(function(e){ (byDate[e.date] = byDate[e.date] || []).push(e); });
+  }
+  function adminRerender(){
+    sortEvents(); rebuildByDate();
+    var ym = (selectedDate || todayStr()).slice(0,7);
+    minYm = events.length ? events[0].date.slice(0,7) : ym;
+    maxYm = events.length ? events[events.length-1].date.slice(0,7) : ym;
+    if(selectedDate){ if(ym<minYm) minYm = ym; if(ym>maxYm) maxYm = ym; }
+    if(!curYm || curYm<minYm || curYm>maxYm) curYm = ym<minYm ? minYm : (ym>maxYm ? maxYm : ym);
+    renderCalendar(curYm); renderSchedule(); PDAdmin.updateBar();
+  }
+  function doMove(newDate){
+    var e = moving; moving = null;
+    if(!e || e.date===newDate){ renderCalendar(curYm); return; }
+    var old = e.date; e.date = newDate;
+    PDAdmin.log('이동: '+e.title+' '+dlabel(old)+' → '+dlabel(newDate), [pdId]);
+    selectedDate = newDate; curYm = newDate.slice(0,7);
+    adminRerender();
+  }
+
+  PDAdmin.init({
+    btn: document.getElementById('admBtn'),
+    cats: CATS,
+    getPds: function(){ return []; },
+    onEnter: function(){
+      return PDAdmin.fetchFile('data/'+pdId+'.json', pdId).then(function(arr){ events = arr; moving = null; sortEvents(); rebuildByDate(); });
+    },
+    onExit: function(){ moving = null; load(); },
+    rerender: adminRerender,
+    getFiles: function(){ return [{key:pdId, path:'data/'+pdId+'.json', text:PDAdmin.serialize(events)}]; }
+  });
+
+  document.addEventListener('click', function(ev){
+    if(!admin.on) return;
+    var add = ev.target.closest('.adm-add');
+    if(add){
+      PDAdmin.openAdd({mode:'single', date:add.getAttribute('data-date'), category:'beginner'}, function(f){
+        events.push({date:f.date, time:f.time, title:f.title, category:f.category, blocks:f.blocks});
+        PDAdmin.log('추가: '+f.title+' '+dlabel(f.date), [pdId]);
+        selectedDate = f.date; curYm = f.date.slice(0,7); adminRerender();
+      });
+      return;
+    }
+    var btn = ev.target.closest('.adm-row button');
+    if(!btn) return;
+    var row = btn.closest('.ev'); var e = row && events[parseInt(row.getAttribute('data-i'),10)];
+    if(!e) return;
+    var act = btn.getAttribute('data-act');
+    if(act==='edit'){
+      PDAdmin.openEdit({title:e.title, date:e.date, time:e.time, category:e.category, blocks:e.blocks}, function(f){
+        var od = e.date;
+        e.title = f.title; e.date = f.date; e.time = f.time; e.category = f.category; e.blocks = f.blocks;
+        PDAdmin.log('수정: '+f.title+(od!==f.date?' ('+dlabel(od)+' → '+dlabel(f.date)+')':''), [pdId]);
+        selectedDate = f.date; curYm = f.date.slice(0,7); adminRerender();
+      });
+    } else if(act==='move'){
+      moving = e; renderCalendar(curYm); document.getElementById('calArea').scrollIntoView({behavior:'smooth', block:'start'});
+    } else if(act==='del'){
+      if(confirm('"'+e.title+'" ('+dlabel(e.date)+') 일정을 삭제할까요?')){
+        events.splice(events.indexOf(e),1); PDAdmin.log('삭제: '+e.title+' '+dlabel(e.date), [pdId]); adminRerender();
+      }
+    }
+  });
+  document.addEventListener('dragstart', function(ev){
+    if(!admin.on) return;
+    var row = ev.target.closest && ev.target.closest('.ev[draggable="true"]'); if(!row) return;
+    ev.dataTransfer.setData('text/plain', row.getAttribute('data-i')); ev.dataTransfer.effectAllowed = 'move';
+  });
+  document.addEventListener('dragover', function(ev){
+    if(!admin.on) return;
+    var cell = ev.target.closest && ev.target.closest('.cal-cell:not(.pad)');
+    if(cell){ ev.preventDefault(); cell.classList.add('droptarget'); }
+  });
+  document.addEventListener('dragleave', function(ev){
+    var cell = ev.target.closest && ev.target.closest('.cal-cell'); if(cell) cell.classList.remove('droptarget');
+  });
+  document.addEventListener('drop', function(ev){
+    if(!admin.on) return;
+    var cell = ev.target.closest && ev.target.closest('.cal-cell:not(.pad)');
+    if(!cell) return;
+    ev.preventDefault(); cell.classList.remove('droptarget');
+    var i = parseInt(ev.dataTransfer.getData('text/plain'),10);
+    if(!isNaN(i) && events[i]){ moving = events[i]; doMove(cell.getAttribute('data-date')); }
+  });
+
   if(!pdId){
     document.getElementById('calArea').innerHTML = '<div class="empty">PD가 지정되지 않았어요. <a href="index.html">PD 목록으로</a></div>';
   } else {
