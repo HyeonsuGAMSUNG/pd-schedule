@@ -23,19 +23,20 @@ window.PDAdmin = (function(){
   }
   function u8ToB64(u8){ var s=''; for(var i=0;i<u8.length;i++) s += String.fromCharCode(u8[i]); return btoa(s); }
   function b64ToU8(b){ var s=atob(b), u=new Uint8Array(s.length); for(var i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; }
-  function deriveKey(pw, salt){
+  var ITER_NEW = 600000;
+  function deriveKey(pw, salt, iter){
     return crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']).then(function(km){
-      return crypto.subtle.deriveKey({name:'PBKDF2', salt:salt, iterations:250000, hash:'SHA-256'}, km, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+      return crypto.subtle.deriveKey({name:'PBKDF2', salt:salt, iterations:iter||250000, hash:'SHA-256'}, km, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
     });
   }
   function encryptToken(token, pw){
     var salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
-    return deriveKey(pw, salt).then(function(key){
+    return deriveKey(pw, salt, ITER_NEW).then(function(key){
       return crypto.subtle.encrypt({name:'AES-GCM', iv:iv}, key, new TextEncoder().encode(token));
-    }).then(function(buf){ return {s:u8ToB64(salt), i:u8ToB64(iv), c:u8ToB64(new Uint8Array(buf))}; });
+    }).then(function(buf){ return {s:u8ToB64(salt), i:u8ToB64(iv), c:u8ToB64(new Uint8Array(buf)), n:ITER_NEW}; });
   }
   function decryptToken(blob, pw){
-    return deriveKey(pw, b64ToU8(blob.s)).then(function(key){
+    return deriveKey(pw, b64ToU8(blob.s), blob.n).then(function(key){
       return crypto.subtle.decrypt({name:'AES-GCM', iv:b64ToU8(blob.i)}, key, b64ToU8(blob.c));
     }).then(function(buf){ return new TextDecoder().decode(buf); });
   }
@@ -43,6 +44,12 @@ window.PDAdmin = (function(){
   function setBlob(b){ try{ localStorage.setItem(LS_KEY, JSON.stringify(b)); return true; }catch(e){ return false; } }
   function clearBlob(){ try{ localStorage.removeItem(LS_KEY); }catch(e){} }
 
+  var SHARED_PATH = 'data/admin.enc.json';
+  function fetchRemoteBlob(){
+    return fetch(SHARED_PATH+'?v='+Date.now(), {cache:'no-store'}).then(function(r){ return r.ok ? r.json() : null; }).then(function(j){
+      return (j && j.s && j.i && j.c) ? j : null;
+    }).catch(function(){ return null; });
+  }
   function gh(path, o){
     o = o || {};
     var headers = {'Accept':'application/vnd.github+json', 'Authorization':'Bearer '+S.token};
@@ -98,8 +105,12 @@ window.PDAdmin = (function(){
 
   // ---------- 인증 ----------
   function showAuth(){
-    var blob = getBlob();
     if(!window.crypto || !crypto.subtle){ toast('이 브라우저에서는 관리자 기능을 쓸 수 없어요 (https 필요)'); return; }
+    var local = getBlob();
+    if(local){ showAuth2(local, false); return; }
+    fetchRemoteBlob().then(function(rb){ showAuth2(rb, true); });
+  }
+  function showAuth2(blob, fromRemote){
     if(blob){
       var m = openModal('<h3>관리자 잠금 해제</h3><label>비밀번호<input type="password" id="admPw" autocomplete="current-password"></label>'
         + '<div class="err" id="admErr" style="display:none"></div>'
@@ -108,7 +119,7 @@ window.PDAdmin = (function(){
       var pw = m.querySelector('#admPw'); pw.focus();
       var go = function(){
         var err = m.querySelector('#admErr'); err.style.display = 'none';
-        decryptToken(blob, pw.value).then(function(tok){ enter(tok); }).catch(function(){
+        decryptToken(blob, pw.value).then(function(tok){ if(fromRemote) setBlob(blob); enter(tok); }).catch(function(){
           err.textContent = '비밀번호가 맞지 않아요.'; err.style.display = 'block';
         });
       };
@@ -119,11 +130,13 @@ window.PDAdmin = (function(){
         e.preventDefault();
         if(confirm('이 기기에 저장된 관리자 설정(암호화된 토큰)을 지울까요?')){ clearBlob(); closeModal(); toast('관리자 설정을 지웠어요'); }
       });
+      if(fromRemote){ var h = m.querySelector('.hint'); h.insertAdjacentHTML('afterbegin', '모든 기기 공용 관리자 설정을 찾았어요. 비밀번호만 입력하면 돼요.<br>'); }
     } else {
       var s = openModal('<h3>관리자 최초 설정 (이 기기에서 1번만)</h3>'
         + '<label>GitHub 토큰<input type="password" id="admTok" autocomplete="off" placeholder="github_pat_..."></label>'
         + '<label>새 관리자 비밀번호<input type="password" id="admPw1" autocomplete="new-password"></label>'
         + '<label>비밀번호 확인<input type="password" id="admPw2" autocomplete="new-password"></label>'
+        + '<label class="chk"><input type="checkbox" id="admShareChk"> 모든 기기에서 비밀번호만으로 열기 (비밀번호 12자 이상 필요)</label>'
         + '<div class="err" id="admErr" style="display:none"></div>'
         + '<div class="btns"><button type="button" id="admCancel">취소</button><button type="button" class="pri" id="admOk">저장하고 열기</button></div>'
         + '<div class="hint"><b>토큰이 뭐예요?</b> GitHub가 "이 열쇠를 가진 사람은 이 사이트의 일정 파일을 고쳐도 된다"고 인정해 주는 긴 암호예요. 처음 한 번만 아래에서 만들어 붙여 넣어요.<br>'
@@ -139,7 +152,8 @@ window.PDAdmin = (function(){
         var tok = s.querySelector('#admTok').value.trim(), p1 = s.querySelector('#admPw1').value, p2 = s.querySelector('#admPw2').value;
         var fail = function(t){ err.textContent = t; err.style.display = 'block'; };
         if(!tok) return fail('토큰을 입력해 주세요.');
-        if(p1.length < 8) return fail('비밀번호는 8자 이상으로 해 주세요.');
+        var share = s.querySelector('#admShareChk').checked;
+        if(p1.length < (share ? 12 : 8)) return fail(share ? '모든 기기 공용으로 쓰려면 비밀번호를 12자 이상으로 해 주세요.' : '비밀번호는 8자 이상으로 해 주세요.');
         if(p1 !== p2) return fail('비밀번호 확인이 달라요.');
         S.token = tok;
         gh('').then(function(r){
@@ -150,10 +164,49 @@ window.PDAdmin = (function(){
           return encryptToken(tok, p1);
         }).then(function(b){
           if(!setBlob(b)) throw new Error('이 브라우저에 저장할 수 없어요 (사생활 보호 모드?).');
+          if(!share) return null;
+          return uploadShared(b);
+        }).then(function(){
           enter(tok);
         }).catch(function(e){ S.token = null; fail(e.message || '설정에 실패했어요.'); });
       });
     }
+  }
+
+  function uploadShared(blob){
+    return gh('/contents/'+SHARED_PATH+'?ref='+GH.branch).then(function(r){ return r.ok ? r.json() : null; }).then(function(cur){
+      return putFile(SHARED_PATH, JSON.stringify(blob)+'\n', cur ? cur.sha : null, 'admin: 모든 기기 공용 관리자 설정 올림');
+    });
+  }
+  function removeShared(){
+    return gh('/contents/'+SHARED_PATH+'?ref='+GH.branch).then(function(r){
+      if(!r.ok) return null;
+      return r.json().then(function(cur){
+        return gh('/contents/'+SHARED_PATH, {method:'DELETE', body:JSON.stringify({message:'admin: 모든 기기 공용 관리자 설정 삭제', sha:cur.sha, branch:GH.branch})});
+      });
+    });
+  }
+  function openShareModal(){
+    var m = openModal('<h3>모든 기기에서 비밀번호만으로 열기</h3>'
+      + '<div class="hint" style="margin-top:0">암호화된 토큰을 이 사이트 저장소에 올려서, 다른 기기에서도 <b>비밀번호만</b> 입력하면 편집할 수 있게 해요. 저장소는 공개라서 암호화된 값은 누구나 볼 수 있어요. <b>비밀번호가 쉬우면 위험하니 12자 이상의 긴 문장형 비밀번호</b>를 쓰세요.</div>'
+      + '<label>공용 비밀번호 (12자 이상)<input type="password" id="shPw1" autocomplete="new-password"></label>'
+      + '<label>비밀번호 확인<input type="password" id="shPw2" autocomplete="new-password"></label>'
+      + '<div class="err" id="shErr" style="display:none"></div>'
+      + '<div class="btns"><button type="button" id="shCancel">취소</button><button type="button" class="pri" id="shOk">올리기</button></div>');
+    m.querySelector('#shCancel').addEventListener('click', closeModal);
+    m.querySelector('#shOk').addEventListener('click', function(){
+      var p1 = m.querySelector('#shPw1').value, p2 = m.querySelector('#shPw2').value, err = m.querySelector('#shErr');
+      var fail = function(t){ err.textContent = t; err.style.display = 'block'; };
+      if(p1.length < 12) return fail('12자 이상으로 해 주세요.');
+      if(p1 !== p2) return fail('비밀번호 확인이 달라요.');
+      encryptToken(S.token, p1).then(function(b){ setBlob(b); return uploadShared(b); }).then(function(){
+        closeModal(); toast('올렸어요. 이제 다른 기기에서는 비밀번호만 입력하면 돼요. (1분쯤 뒤부터)'); refreshShareBtn();
+      }).catch(function(e){ fail(e.message || '올리기에 실패했어요'); });
+    });
+  }
+  function refreshShareBtn(){
+    var b = document.getElementById('admShare'); if(!b) return;
+    fetchRemoteBlob().then(function(rb){ b.setAttribute('data-shared', rb ? '1' : '0'); b.textContent = rb ? '공용 설정 끄기' : '모든 기기용으로 올리기'; });
   }
 
   function enter(tok){
@@ -182,6 +235,7 @@ window.PDAdmin = (function(){
     var bar = document.getElementById('admBar');
     if(!bar){ bar = document.createElement('div'); bar.id = 'admBar'; bar.className = 'admbar'; document.body.appendChild(bar); }
     bar.innerHTML = '<span class="txt" id="admTxt"></span>'
+      + '<button type="button" id="admShare">공용 설정</button>'
       + '<button type="button" id="admUndo">되돌리기</button>'
       + '<button type="button" class="pri" id="admSave">저장</button>'
       + '<button type="button" id="admOut">나가기</button>';
@@ -192,6 +246,13 @@ window.PDAdmin = (function(){
       Promise.resolve(opts.onEnter()).then(function(){ S.dirty = {}; S.pending = []; opts.rerender(); updateBar(); toast('되돌렸어요'); });
     });
     bar.querySelector('#admOut').addEventListener('click', function(){ exit(false); });
+    bar.querySelector('#admShare').addEventListener('click', function(){
+      if(this.getAttribute('data-shared')==='1'){
+        if(!confirm('공용 설정을 끌까요? 다른 기기에서는 토큰을 다시 입력해야 열 수 있어요.')) return;
+        removeShared().then(function(){ toast('공용 설정을 껐어요'); refreshShareBtn(); }).catch(function(e){ toast(e.message||'실패했어요'); });
+      } else openShareModal();
+    });
+    refreshShareBtn();
     updateBar();
   }
   function updateBar(){
