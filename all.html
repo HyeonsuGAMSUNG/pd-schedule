@@ -34,6 +34,8 @@
 .viewtabs{display:flex;gap:6px;margin-bottom:10px}
 .vtab{flex:1;padding:9px 8px;border-radius:9px;border:1px solid var(--border);background:var(--chip-bg);color:var(--muted);font-weight:800;font-size:.82rem;cursor:pointer}
 .vtab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.pdchip.rev{border-style:dotted;border-color:#2f9e5b;color:#2f9e5b}
+@media (prefers-color-scheme: dark){.pdchip.rev{color:#6fd99a;border-color:#6fd99a}}
 
 </style>
 </head>
@@ -104,14 +106,19 @@
   };
   // 한중일(통역) 수업: 구조상 늘 통역이 필요한 카테고리 — 통역자가 아직 배정 안 돼도 이 탭에는 잡혀서 빠진 걸 바로 알 수 있어요.
   var ALWAYS_INTERP_CATS = {china:1, japan:1, global1:1, globalcareer:1, trackdesign:1, jordan:1, hitmakers:1, ginger:1, bensamama:1, tsm:1, toplinefree:1, mentor:1};
+  // 카테고리가 freelecture 등으로 따로 잡혀도 이 프로그램들의 무료특강/부속 행사는 늘 한중일 수업이에요.
+  var ALWAYS_INTERP_TITLE_RE = /히트메이커스|트랙디자인/;
+  function isAlwaysInterp(x){ return !!ALWAYS_INTERP_CATS[x.category] || ALWAYS_INTERP_TITLE_RE.test(x.title); }
   function isInterpClass(x){
-    if(ALWAYS_INTERP_CATS[x.category]) return true;
+    if(isAlwaysInterp(x)) return true;
     return Object.keys(x.people).some(function(p){ return x.people[p]==='int'; });
   }
   function missingInterpNote(x){
-    if(!interpMode || !x.blocks || !ALWAYS_INTERP_CATS[x.category]) return '';
+    if(!interpMode || !x.blocks || !isAlwaysInterp(x)) return '';
     var hasInt = Object.keys(x.people).some(function(p){ return x.people[p]==='int'; });
-    return hasInt ? '' : '<div class="cnote interp">⚠ 아직 통역자가 배정 안 됐어요</div>';
+    var hasRev = Object.keys(x.people).some(function(p){ return x.people[p]==='rev'; });
+    return (hasInt ? '' : '<div class="cnote interp">⚠ 아직 통역자가 배정 안 됐어요</div>')
+      + (hasRev ? '' : '<div class="cnote interp">⚠ 아직 원어민 검수자가 배정 안 됐어요</div>');
   }
   var interpMode = /(^|[?&])view=interp(&|$)/.test(location.search);
   var DOW = ['일','월','화','수','목','금','토'];
@@ -142,8 +149,9 @@
   }
   function mins(t){ var p=t.split(':'); return parseInt(p[0],10)*60+parseInt(p[1],10); }
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function isInterp(title){ return /통역/.test(title); }
-  function cleanTitle(t){ return t.replace(/\s*\((마무리\/)?통역\)\s*$/,''); }
+  function roleOf(title){ if(/검수/.test(title)) return 'rev'; if(/통역/.test(title)) return 'int'; return 'main'; }
+  var ROLE_PRI = {main:3, int:2, rev:1};
+  function cleanTitle(t){ return t.replace(/\s*\((마무리\/)?(통역|검수)\)\s*$/,''); }
 
   function tagHtml(cat){
     var c = CATS[cat] || {label:cat, hue:0};
@@ -156,7 +164,7 @@
     var order = [];
     perPd.forEach(function(pack){
       pack.events.forEach(function(e){
-        var role = isInterp(e.title) ? 'int' : 'main';
+        var role = roleOf(e.title);
         var key = e.date+'|'+e.category+'|'+(e.time||'');
         var x = map[key];
         if(!x){
@@ -164,15 +172,15 @@
           order.push(key);
         }
         x.srcs.push({e:e, pd:pack.id, role:role});
-        if(role==='main' && x.titleRole==='int'){ x.title = e.title; x.titleRole = 'main'; }
+        if(role==='main' && x.titleRole!=='main'){ x.title = e.title; x.titleRole = 'main'; }
         x.blocks = x.blocks || e.blocks;
         var bucket = e.blocks ? x.people : x.offPeople;
-        if(!bucket[pack.id] || role==='main') bucket[pack.id] = role;
+        if(!bucket[pack.id] || ROLE_PRI[role] > ROLE_PRI[bucket[pack.id]]) bucket[pack.id] = role;
       });
     });
     return order.map(function(k){
       var x = map[k];
-      if(x.titleRole==='int') x.title = cleanTitle(x.title);
+      if(x.titleRole!=='main') x.title = cleanTitle(x.title);
       if(!x.blocks) x.people = x.offPeople;
       return x;
     }).sort(function(a,b){
@@ -244,8 +252,10 @@
     var ids = Object.keys(x.people).sort(function(a,b){ return PD_IDS.indexOf(a)-PD_IDS.indexOf(b); });
     var main = ids.filter(function(p){ return x.people[p]==='main'; });
     var intr = ids.filter(function(p){ return x.people[p]==='int'; });
+    var rev = ids.filter(function(p){ return x.people[p]==='rev'; });
     var html = main.map(function(p){ return PD_HUE[p]!==undefined ? '<span class="pdchip c" style="--h:'+PD_HUE[p]+'">'+esc(pdName[p]||p)+'</span>' : '<span class="pdchip">'+esc(pdName[p]||p)+'</span>'; }).join('');
     html += intr.map(function(p){ return '<span class="pdchip int">'+esc(pdName[p]||p)+' 통역</span>'; }).join('');
+    html += rev.map(function(p){ return '<span class="pdchip rev">'+esc(pdName[p]||p)+' 검수</span>'; }).join('');
     return html ? '<div class="pdchips">'+html+'</div>' : '';
   }
 
