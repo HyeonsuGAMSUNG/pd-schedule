@@ -31,6 +31,9 @@
 }
 .pdchip.c{background:hsl(var(--h) 85% 90%);border-color:transparent;color:hsl(var(--h) 75% 24%)}
 @media (prefers-color-scheme: dark){.pdchip.c{background:hsl(var(--h) 45% 26%);color:hsl(var(--h) 85% 82%)}}
+.viewtabs{display:flex;gap:6px;margin-bottom:10px}
+.vtab{flex:1;padding:9px 8px;border-radius:9px;border:1px solid var(--border);background:var(--chip-bg);color:var(--muted);font-weight:800;font-size:.82rem;cursor:pointer}
+.vtab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 
 </style>
 </head>
@@ -40,8 +43,8 @@
   <div class="top-inner">
     <a class="backlink" href="index.html">‹ PD 목록</a>
     <div class="brand">
-      <h1>전체 스케쥴</h1>
-      <span class="tag-rec">ALL</span>
+      <h1 id="pageTitle">전체 스케쥴</h1>
+      <span class="tag-rec" id="pageTag">ALL</span>
     </div>
     <div class="sub" id="syncNote">데이터 불러오는 중…</div>
     <button type="button" class="adm-btn" id="admBtn">관리자</button>
@@ -49,15 +52,19 @@
 </header>
 
 <div class="wrap">
+  <div class="viewtabs" id="viewTabs">
+    <button type="button" class="vtab" data-view="all">전체 스케쥴</button>
+    <button type="button" class="vtab" data-view="interp">🌏 한중일 통역 수업</button>
+  </div>
   <div class="filters" id="filters"></div>
   <div id="conflictArea"></div>
   <div id="calArea"><div class="empty">일정 불러오는 중…</div></div>
 
-  <div class="section-title"><h2>전체 일정</h2></div>
+  <div class="section-title"><h2 id="listTitle">전체 일정</h2></div>
   <div class="month-nav" id="monthNav"></div>
   <div id="scheduleArea"></div>
 
-  <footer>
+  <footer id="pageFooter">
     모든 PD의 일정을 한 화면에 합친 페이지예요. 같은 수업은 한 줄로 묶고, 참여하는 PD와 통역을 아래에 표시해요.
     겹침 표시는 시작 시각이 3시간 안으로 가까운 수업끼리 비교한 참고용이에요. 시간이 노션에 없는 수업은 19:00 기준이에요. 같은 사람(강의자·통역자 누구든)이 비슷한 시간에 두 수업에 잡힌 경우만 표시해요.
   </footer>
@@ -95,6 +102,18 @@
     mentor:{label:'GP1 한국 멘토', hue:250},
     dinner:{label:'치킨 모임', hue:20}
   };
+  // 한중일(통역) 수업: 구조상 늘 통역이 필요한 카테고리 — 통역자가 아직 배정 안 돼도 이 탭에는 잡혀서 빠진 걸 바로 알 수 있어요.
+  var ALWAYS_INTERP_CATS = {china:1, japan:1, global1:1, globalcareer:1, trackdesign:1, jordan:1, hitmakers:1, ginger:1, bensamama:1, tsm:1, toplinefree:1, mentor:1};
+  function isInterpClass(x){
+    if(ALWAYS_INTERP_CATS[x.category]) return true;
+    return Object.keys(x.people).some(function(p){ return x.people[p]==='int'; });
+  }
+  function missingInterpNote(x){
+    if(!interpMode || !x.blocks || !ALWAYS_INTERP_CATS[x.category]) return '';
+    var hasInt = Object.keys(x.people).some(function(p){ return x.people[p]==='int'; });
+    return hasInt ? '' : '<div class="cnote interp">⚠ 아직 통역자가 배정 안 됐어요</div>';
+  }
+  var interpMode = /(^|[?&])view=interp(&|$)/.test(location.search);
   var DOW = ['일','월','화','수','목','금','토'];
   var WINDOW_MIN = 180;
   var PD_HUE = {michingamsung:270, naseongjun:48, heojunho:215, kimseonhwi:0};
@@ -186,19 +205,31 @@
 
   var conflicts = [];
   var conflictByDate = {};
-  function indexConflicts(){
-    conflictByDate = {};
-    conflicts.forEach(function(c){
-      var cur = conflictByDate[c.date];
-      if(!cur || c.level==='person') conflictByDate[c.date] = c.level;
+  var interpConflicts = [];
+  var conflictByDateInterp = {};
+  function indexOne(list){
+    var m = {};
+    list.forEach(function(c){
+      var cur = m[c.date];
+      if(!cur || c.level==='person') m[c.date] = c.level;
     });
+    return m;
   }
+  function indexConflicts(){
+    conflictByDate = indexOne(conflicts);
+    interpConflicts = conflicts.filter(function(c){ return isInterpClass(c.a) && isInterpClass(c.b); });
+    conflictByDateInterp = indexOne(interpConflicts);
+  }
+  function curConflicts(){ return interpMode ? interpConflicts : conflicts; }
+  function curConflictByDate(){ return interpMode ? conflictByDateInterp : conflictByDate; }
 
   // ---------- filtering ----------
   function visibleEvents(){
+    var list = merged;
+    if(interpMode) list = list.filter(isInterpClass);
     var anyOn = PD_IDS.some(function(id){ return active[id]; });
-    if(!anyOn) return merged;
-    return merged.filter(function(x){
+    if(!anyOn) return list;
+    return list.filter(function(x){
       return Object.keys(x.people).some(function(p){ return active[p]; });
     });
   }
@@ -220,7 +251,7 @@
 
   function conflictNoteFor(x){
     var notes = [];
-    conflicts.forEach(function(c){
+    curConflicts().forEach(function(c){
       if(c.a!==x && c.b!==x) return;
       var other = c.a===x ? c.b : c.a;
       if(c.level==='person'){
@@ -243,7 +274,7 @@
     return '<div class="ev ev-all'+(x.blocks?'':' is-off')+(admin.on?' adm':'')+'" data-key="'+esc(x.key)+'"'+(admin.on?' draggable="true"':'')+'>'
       + '<div class="ev-line"><span class="time mono">'+timeLabel+'</span>'
       + '<span class="title">'+esc(x.title)+'</span>'+tagHtml(x.category)+'</div>'
-      + peopleHtml(x) + conflictNoteFor(x) + adm
+      + peopleHtml(x) + conflictNoteFor(x) + missingInterpNote(x) + adm
       + '</div>';
   }
 
@@ -258,10 +289,27 @@
     box.innerHTML = html;
   }
 
+  function renderViewMode(){
+    document.querySelectorAll('.vtab').forEach(function(b){
+      b.classList.toggle('on', b.getAttribute('data-view')===(interpMode?'interp':'all'));
+    });
+    if(interpMode){
+      document.getElementById('pageTitle').textContent = '한중일 통역 수업';
+      document.getElementById('pageTag').textContent = 'INT';
+      document.getElementById('listTitle').textContent = '통역 수업 전체 일정';
+      document.getElementById('pageFooter').textContent = '한중일(통역) 수업만 모아봤어요. 트랙디자인·조던쇼를 잡아라·GP1 한국 멘토처럼 통역이 꼭 필요한 수업은 통역자가 아직 배정 안 됐어도 여기에 잡혀요. 같은 사람(강의자·통역자 누구든)이 비슷한 시간에 두 수업에 잡힌 경우만 겹침으로 표시해요.';
+    } else {
+      document.getElementById('pageTitle').textContent = '전체 스케쥴';
+      document.getElementById('pageTag').textContent = 'ALL';
+      document.getElementById('listTitle').textContent = '전체 일정';
+      document.getElementById('pageFooter').textContent = '모든 PD의 일정을 한 화면에 합친 페이지예요. 같은 수업은 한 줄로 묶고, 참여하는 PD와 통역을 아래에 표시해요. 겹침 표시는 시작 시각이 3시간 안으로 가까운 수업끼리 비교한 참고용이에요. 시간이 노션에 없는 수업은 19:00 기준이에요. 같은 사람(강의자·통역자 누구든)이 비슷한 시간에 두 수업에 잡힌 경우만 표시해요.';
+    }
+  }
+
   function renderConflictSummary(){
     var area = document.getElementById('conflictArea');
     var today = todayStr();
-    var upcoming = conflicts.filter(function(c){ return c.date>=today; });
+    var upcoming = curConflicts().filter(function(c){ return c.date>=today; });
     if(!upcoming.length){
       area.innerHTML = '<div class="csum ok">앞으로 겹치는 일정이 없어요.</div>';
       return;
@@ -291,7 +339,7 @@
   function dayDetailHtml(ds, dayMap){
     var evs = dayMap[ds] || [];
     var blocking = evs.filter(function(x){return x.blocks;});
-    var cn = conflictByDate[ds];
+    var cn = curConflictByDate()[ds];
     var pill = '<span class="pill '+(blocking.length?'busy':'free')+'">'+(blocking.length?('수업 '+blocking.length+'개'):'수업 없음')+'</span>';
     var warn = cn==='person' ? '<span class="pill warn">⚠ 같은 사람 겹침</span>' : (cn==='interp' ? '<span class="pill amber">통역 수업 동시간</span>' : '');
     return '<div class="dd-head">'+pill+warn+'<span class="dd-date mono">'+fmtKDate(ds)+' ('+DOW[dowOf(ds)]+')</span></div>'
@@ -314,7 +362,7 @@
       var cls = 'cal-cell all '+(blocking.length?'has':'none');
       if(ds===today) cls += ' today';
       if(ds===selectedDate) cls += ' selected';
-      var cn = conflictByDate[ds];
+      var cn = curConflictByDate()[ds];
       var mark = cn==='person' ? '<span class="cmark person">!</span>' : (cn==='interp' ? '<span class="cmark interp">!</span>' : '');
       var src = blocking.length ? blocking : evs;
       var who = {};
@@ -385,7 +433,7 @@
     }).join('');
     document.getElementById('scheduleArea').innerHTML = mks.map(function(mk){
       var daysHtml = Object.keys(months[mk]).sort().map(function(dk){
-        var isToday = dk===today, cn = conflictByDate[dk];
+        var isToday = dk===today, cn = curConflictByDate()[dk];
         var badge = cn==='person' ? '<span class="cmark person inline">!</span>' : (cn==='interp' ? '<span class="cmark interp inline">!</span>' : '');
         return '<div class="day"><div class="day-head"><span class="date-num">'+parseInt(dk.slice(5,7),10)+'/'+parseInt(dk.slice(8,10),10)+'</span>'
           + '<span class="dow">('+DOW[dowOf(dk)]+')</span>'+(isToday?'<span class="today-mark">오늘</span>':'')+badge+'</div>'
@@ -396,6 +444,7 @@
   }
 
   function renderAll(){
+    renderViewMode();
     renderFilters();
     renderConflictSummary();
     var vis = visibleEvents();
@@ -415,6 +464,21 @@
     var id = b.getAttribute('data-pd');
     if(id==='*') PD_IDS.forEach(function(p){ active[p]=false; });
     else active[id] = !active[id];
+    renderAll();
+  });
+  document.getElementById('viewTabs').addEventListener('click', function(ev){
+    var b = ev.target.closest('.vtab'); if(!b) return;
+    var v = b.getAttribute('data-view');
+    interpMode = (v==='interp');
+    selectedDate = null; curYm = null;
+    var url = new URL(location.href);
+    if(interpMode) url.searchParams.set('view','interp'); else url.searchParams.delete('view');
+    history.replaceState(null, '', url.pathname + (url.search ? url.search : ''));
+    if(merged.length){
+      var vis = visibleEvents();
+      minYm = (vis.length?vis:merged)[0].date.slice(0,7);
+      maxYm = (vis.length?vis:merged)[(vis.length?vis.length:merged.length)-1].date.slice(0,7);
+    }
     renderAll();
   });
 
@@ -442,8 +506,10 @@
         document.getElementById('calArea').innerHTML = '<div class="empty">아직 등록된 일정이 없어요.</div>';
         return;
       }
-      minYm = merged[0].date.slice(0,7);
-      maxYm = merged[merged.length-1].date.slice(0,7);
+      var initVis = visibleEvents();
+      var rangeSrc = initVis.length ? initVis : merged;
+      minYm = rangeSrc[0].date.slice(0,7);
+      maxYm = rangeSrc[rangeSrc.length-1].date.slice(0,7);
       document.getElementById('syncNote').textContent = 'PD '+packs.length+'명 · 수업 '+merged.length+'개 (PD별 등록 '+n+'건을 합침)';
       renderAll();
     }).catch(function(){
@@ -464,7 +530,10 @@
     merged = mergeAll(packs);
     conflicts = computeConflicts(merged);
     indexConflicts();
-    if(merged.length){ minYm = merged[0].date.slice(0,7); maxYm = merged[merged.length-1].date.slice(0,7); }
+    if(merged.length){
+      var rangeSrc2 = visibleEvents(); if(!rangeSrc2.length) rangeSrc2 = merged;
+      minYm = rangeSrc2[0].date.slice(0,7); maxYm = rangeSrc2[rangeSrc2.length-1].date.slice(0,7);
+    }
     if(selectedDate){ if(selectedDate.slice(0,7) < minYm) minYm = selectedDate.slice(0,7); if(selectedDate.slice(0,7) > maxYm) maxYm = selectedDate.slice(0,7); }
     renderAll(); PDAdmin.updateBar();
   }
