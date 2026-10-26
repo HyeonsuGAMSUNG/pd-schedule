@@ -104,12 +104,15 @@
     mentor:{label:'GP1 한국 멘토', hue:250},
     dinner:{label:'치킨 모임', hue:20}
   };
-  // 한중일(통역) 수업: 구조상 늘 통역이 필요한 카테고리 — 통역자가 아직 배정 안 돼도 이 탭에는 잡혀서 빠진 걸 바로 알 수 있어요.
-  var ALWAYS_INTERP_CATS = {china:1, japan:1, global1:1, globalcareer:1, trackdesign:1, jordan:1, hitmakers:1, ginger:1, bensamama:1, tsm:1, toplinefree:1, mentor:1};
+  // 한중일 동시진행(신푸른솔이 늘 통역으로 들어가는) 수업만 — 중국1기·일본5기·TSM처럼 그 나라 학생만 모아 그 나라 통역자가
+  // 알아서 진행하는 단일언어 수업은 이 탭에서 제외해요(통역자가 있어도 동시진행이 아니므로 넣지 않음).
+  var SINGLE_LANG_CATS = {china:1, japan:1, tsm:1, toplinefree:1};
+  var ALWAYS_INTERP_CATS = {global1:1, globalcareer:1, trackdesign:1, jordan:1, hitmakers:1, ginger:1, bensamama:1, mentor:1};
   // 카테고리가 freelecture 등으로 따로 잡혀도 이 프로그램들의 무료특강/부속 행사는 늘 한중일 수업이에요.
   var ALWAYS_INTERP_TITLE_RE = /히트메이커스|트랙디자인/;
   function isAlwaysInterp(x){ return !!ALWAYS_INTERP_CATS[x.category] || ALWAYS_INTERP_TITLE_RE.test(x.title); }
   function isInterpClass(x){
+    if(SINGLE_LANG_CATS[x.category]) return false;
     if(isAlwaysInterp(x)) return true;
     return Object.keys(x.people).some(function(p){ return x.people[p]==='int'; });
   }
