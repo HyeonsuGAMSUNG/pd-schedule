@@ -48,5 +48,15 @@
     "id": "kimdohyeon",
     "name": "김도현 PD",
     "desc": "AI 아티스트(화요일), 수노 플리"
+  },
+  {
+    "id": "jordanshow",
+    "name": "조던쇼",
+    "desc": "히트메이커스 2 게스트 강의(WEEK 5~8)"
+  },
+  {
+    "id": "charlottewilson",
+    "name": "샬롯윌슨",
+    "desc": "히트메이커스 2 게스트 강의(WEEK 9~12)"
   }
 ]
