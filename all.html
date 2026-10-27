@@ -36,6 +36,8 @@
 .vtab.on{background:var(--accent);color:#fff;border-color:var(--accent)}
 .pdchip.rev{border-style:dotted;border-color:#2f9e5b;color:#2f9e5b}
 @media (prefers-color-scheme: dark){.pdchip.rev{color:#6fd99a;border-color:#6fd99a}}
+.pdchip.guest{background:linear-gradient(135deg,#f6c94a,#e8841a);border-color:transparent;color:#3a2200;font-weight:900;box-shadow:0 0 0 1px rgba(232,132,26,.4)}
+.pn.guest{background:linear-gradient(135deg,#f6c94a,#e8841a)!important;color:#3a2200!important;font-weight:900}
 
 </style>
 </head>
@@ -127,7 +129,9 @@
   var DOW = ['일','월','화','수','목','금','토'];
   var WINDOW_MIN = 180;
   var PD_HUE = {michingamsung:270, naseongjun:48, heojunho:215, kimseonhwi:0};
-  var SHORT = {michingamsung:'미친', heojunho:'준호', sinpureunsol:'푸른', naseongjun:'성준', kimseonhwi:'선휘', syunta:'슌타', satsuki:'사츠', honomi:'호노', ohani:'오하', kimdohyeon:'도현'};
+  var SHORT = {michingamsung:'미친', heojunho:'준호', sinpureunsol:'푸른', naseongjun:'성준', kimseonhwi:'선휘', syunta:'슌타', satsuki:'사츠', honomi:'호노', ohani:'오하', kimdohyeon:'도현', jordanshow:'조던', charlottewilson:'샬롯'};
+  // 해외 게스트 강의자: 항상 맨 위, 눈에 띄는 금색 배지로 표시
+  var GUEST_IDS = {jordanshow:1, charlottewilson:1};
   function shortName(id){ return SHORT[id] || (pdName[id]||id).slice(0,2); }
 
   var pds = [];           // [{id,name}]
@@ -256,7 +260,10 @@
     var main = ids.filter(function(p){ return x.people[p]==='main'; });
     var intr = ids.filter(function(p){ return x.people[p]==='int'; });
     var rev = ids.filter(function(p){ return x.people[p]==='rev'; });
-    var html = main.map(function(p){ return PD_HUE[p]!==undefined ? '<span class="pdchip c" style="--h:'+PD_HUE[p]+'">'+esc(pdName[p]||p)+'</span>' : '<span class="pdchip">'+esc(pdName[p]||p)+'</span>'; }).join('');
+    var html = main.map(function(p){
+      if(GUEST_IDS[p]) return '<span class="pdchip guest">⭐ '+esc(pdName[p]||p)+'</span>';
+      return PD_HUE[p]!==undefined ? '<span class="pdchip c" style="--h:'+PD_HUE[p]+'">'+esc(pdName[p]||p)+'</span>' : '<span class="pdchip">'+esc(pdName[p]||p)+'</span>';
+    }).join('');
     html += intr.map(function(p){ return '<span class="pdchip int">'+esc(pdName[p]||p)+' 통역</span>'; }).join('');
     html += rev.map(function(p){ return '<span class="pdchip rev">'+esc(pdName[p]||p)+' 검수</span>'; }).join('');
     return html ? '<div class="pdchips">'+html+'</div>' : '';
@@ -387,9 +394,10 @@
       });
       function nameSpans(role){
         return PD_IDS.filter(function(p){ return who[p]===role; }).map(function(p){
-          var colored = role==='main' && PD_HUE[p]!==undefined;
-          return '<span class="pn'+(colored?' c':'')+(blocking.length?'':' off')+'"'+(colored?' style="--h:'+PD_HUE[p]+'"':'')+'>'
-            + '<span class="nf">'+esc(pdName[p]||p)+'</span><span class="ns">'+esc(shortName(p))+'</span></span>';
+          var guest = role==='main' && GUEST_IDS[p];
+          var colored = role==='main' && !guest && PD_HUE[p]!==undefined;
+          return '<span class="pn'+(colored?' c':'')+(guest?' guest':'')+(blocking.length?'':' off')+'"'+(colored?' style="--h:'+PD_HUE[p]+'"':'')+'>'
+            + '<span class="nf">'+(guest?'⭐ ':'')+esc(pdName[p]||p)+'</span><span class="ns">'+(guest?'⭐':'')+esc(shortName(p))+'</span></span>';
         }).join('');
       }
       var mainHtml = nameSpans('main'), intHtml = nameSpans('int');
