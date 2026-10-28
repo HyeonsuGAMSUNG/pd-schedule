@@ -124,14 +124,17 @@
   }
   // 레노(한국15기+일본5기 합동)는 한중일 동시진행은 아니지만 통역·검수 배정은 추적해요.
   function needsTracking(x){ return isAlwaysInterp(x) || /LENNO|레노/.test(x.title); }
+  // 레노는 각국 통역자가 곧 원어민이라 따로 검수자가 필요 없어요(통역만 추적).
+  var NO_REVIEW_RE = /LENNO|레노/;
+  function needsReview(x){ return needsTracking(x) && !NO_REVIEW_RE.test(x.title); }
   function hasInt(x){ return Object.keys(x.people).some(function(p){ return x.people[p]==='int'; }); }
   function hasRev(x){ return Object.keys(x.people).some(function(p){ return x.people[p]==='rev'; }); }
   // 제목에 "~미정"이 남아있으면(예: "중국 검수 미정") 통역/검수가 있어도 아직 다 끝난 게 아니에요.
-  function isMissingAssignment(x){ return !!x.blocks && needsTracking(x) && (!hasInt(x) || !hasRev(x) || /미정/.test(x.title)); }
+  function isMissingAssignment(x){ return !!x.blocks && needsTracking(x) && (!hasInt(x) || (needsReview(x) && !hasRev(x)) || /미정/.test(x.title)); }
   function missingInterpNote(x){
     if((!interpMode && !japanMode && !missingMode) || !x.blocks || !needsTracking(x)) return '';
     return (hasInt(x) ? '' : '<div class="cnote interp">⚠ 아직 통역자가 배정 안 됐어요</div>')
-      + (hasRev(x) ? '' : '<div class="cnote interp">⚠ 아직 원어민 검수자가 배정 안 됐어요</div>');
+      + (needsReview(x) && !hasRev(x) ? '<div class="cnote interp">⚠ 아직 원어민 검수자가 배정 안 됐어요</div>' : '');
   }
   var interpMode = /(^|[?&])view=interp(&|$)/.test(location.search);
   var japanMode = /(^|[?&])view=japan(&|$)/.test(location.search);
