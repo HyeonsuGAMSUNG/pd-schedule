@@ -77,7 +77,7 @@ body.adm-on .rbook{cursor:grab}
   <div class="rlist" id="list"></div>
 
   <footer>
-    회의실 예약 현황이에요. 예약하려면 관리자에게 날짜·시간·이름·목적을 알려 주세요. 관리자가 "관리자" 버튼으로 열어 빈 칸을 누르면 예약을 넣을 수 있고, 예약을 끌어서 다른 시간으로 옮길 수도 있어요.
+    잔디 "회의실 예약 현황" 토픽에 남긴 댓글(날짜 시간 - 이름 : 목적)을 옮겨 보여 주는 페이지예요. 예약은 잔디에 댓글로 남기고, 이 페이지는 잔디 내용을 읽어 와서 갱신해요. 사용 시간을 따로 적지 않으면 1시간으로 표시해요. 관리자는 "관리자" 버튼으로 직접 추가·이동·수정도 할 수 있어요.
   </footer>
 </div>
 
@@ -145,7 +145,7 @@ body.adm-on .rbook{cursor:grab}
     g.innerHTML = html;
     document.getElementById('sumrow').textContent = '이번 주 예약 '+shown+'건 · 평일 '+pad(START_H)+':00~'+pad(END_H)+':00';
     renderList();
-    document.getElementById('note').textContent = '전체 예약 '+bookings.length+'건 · 평일만 표시';
+    document.getElementById('note').textContent = '전체 예약 '+bookings.length+'건 · 평일만 표시'+syncNote;
     if(window.PDAdmin) PDAdmin.updateBar();
   }
 
@@ -165,9 +165,16 @@ body.adm-on .rbook{cursor:grab}
     el.innerHTML = html;
   }
 
+  var syncNote = '';
   function load(){
-    return fetch('data/meetingroom.json?v='+Date.now(), {cache:'no-store'}).then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; }).then(function(arr){
-      bookings = arr; render();
+    var meta = fetch('data/meetingroom_meta.json?v='+Date.now(), {cache:'no-store'}).then(function(r){ return r.ok ? r.json() : null; }).catch(function(){ return null; });
+    return Promise.all([
+      fetch('data/meetingroom.json?v='+Date.now(), {cache:'no-store'}).then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; }),
+      meta
+    ]).then(function(res){
+      bookings = res[0];
+      syncNote = res[1] && res[1].syncedAt ? ' · 잔디 반영 '+res[1].syncedAt.slice(5,10).replace('-','/')+' '+res[1].syncedAt.slice(11,16)+' 기준' : '';
+      render();
     });
   }
 
