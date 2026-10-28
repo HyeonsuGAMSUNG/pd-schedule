@@ -126,7 +126,8 @@
   function needsTracking(x){ return isAlwaysInterp(x) || /LENNO|레노/.test(x.title); }
   function hasInt(x){ return Object.keys(x.people).some(function(p){ return x.people[p]==='int'; }); }
   function hasRev(x){ return Object.keys(x.people).some(function(p){ return x.people[p]==='rev'; }); }
-  function isMissingAssignment(x){ return !!x.blocks && needsTracking(x) && (!hasInt(x) || !hasRev(x)); }
+  // 제목에 "~미정"이 남아있으면(예: "중국 검수 미정") 통역/검수가 있어도 아직 다 끝난 게 아니에요.
+  function isMissingAssignment(x){ return !!x.blocks && needsTracking(x) && (!hasInt(x) || !hasRev(x) || /미정/.test(x.title)); }
   function missingInterpNote(x){
     if((!interpMode && !japanMode && !missingMode) || !x.blocks || !needsTracking(x)) return '';
     return (hasInt(x) ? '' : '<div class="cnote interp">⚠ 아직 통역자가 배정 안 됐어요</div>')
