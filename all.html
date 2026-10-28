@@ -115,6 +115,7 @@
   var ALWAYS_INTERP_TITLE_RE = /히트메이커스|트랙디자인/;
   function isAlwaysInterp(x){ return !!ALWAYS_INTERP_CATS[x.category] || ALWAYS_INTERP_TITLE_RE.test(x.title); }
   function isInterpClass(x){
+    if(/LENNO|레노/.test(x.title)) return false; // 레노 한국15기+일본5기: 통역은 있지만 한중일 동시진행이 아님
     if(SINGLE_LANG_CATS[x.category]) return false;
     if(isAlwaysInterp(x)) return true;
     return Object.keys(x.people).some(function(p){ return x.people[p]==='int'; });
