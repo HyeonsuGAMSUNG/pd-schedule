@@ -60,6 +60,7 @@
     <button type="button" class="vtab" data-view="all">전체 스케쥴</button>
     <button type="button" class="vtab" data-view="interp">🌏 한중일 통역 수업</button>
     <button type="button" class="vtab" data-view="japan">🇯🇵 일본 전용</button>
+    <button type="button" class="vtab" data-view="missing">📋 검수·통역 미배정</button>
   </div>
   <div class="filters" id="filters"></div>
   <div id="conflictArea"></div>
@@ -121,15 +122,19 @@
     if(isAlwaysInterp(x)) return true;
     return Object.keys(x.people).some(function(p){ return x.people[p]==='int'; });
   }
+  // 레노(한국15기+일본5기 합동)는 한중일 동시진행은 아니지만 통역·검수 배정은 추적해요.
+  function needsTracking(x){ return isAlwaysInterp(x) || /LENNO|레노/.test(x.title); }
+  function hasInt(x){ return Object.keys(x.people).some(function(p){ return x.people[p]==='int'; }); }
+  function hasRev(x){ return Object.keys(x.people).some(function(p){ return x.people[p]==='rev'; }); }
+  function isMissingAssignment(x){ return !!x.blocks && needsTracking(x) && (!hasInt(x) || !hasRev(x)); }
   function missingInterpNote(x){
-    if((!interpMode && !japanMode) || !x.blocks || !isAlwaysInterp(x)) return '';
-    var hasInt = Object.keys(x.people).some(function(p){ return x.people[p]==='int'; });
-    var hasRev = Object.keys(x.people).some(function(p){ return x.people[p]==='rev'; });
-    return (hasInt ? '' : '<div class="cnote interp">⚠ 아직 통역자가 배정 안 됐어요</div>')
-      + (hasRev ? '' : '<div class="cnote interp">⚠ 아직 원어민 검수자가 배정 안 됐어요</div>');
+    if((!interpMode && !japanMode && !missingMode) || !x.blocks || !needsTracking(x)) return '';
+    return (hasInt(x) ? '' : '<div class="cnote interp">⚠ 아직 통역자가 배정 안 됐어요</div>')
+      + (hasRev(x) ? '' : '<div class="cnote interp">⚠ 아직 원어민 검수자가 배정 안 됐어요</div>');
   }
   var interpMode = /(^|[?&])view=interp(&|$)/.test(location.search);
   var japanMode = /(^|[?&])view=japan(&|$)/.test(location.search);
+  var missingMode = /(^|[?&])view=missing(&|$)/.test(location.search);
   // 일본 전용: 일본 학생이 듣는 수업(일본 5기·TSM·일본 초급 5기·레노 합동) + 한중일 동시진행 수업
   function isJapanClass(x){
     if(x.category==='japan' || x.category==='tsm') return true;
@@ -139,7 +144,7 @@
   var DOW = ['일','월','화','수','목','금','토'];
   var WINDOW_MIN = 180;
   var PD_HUE = {michingamsung:270, naseongjun:48, heojunho:215, kimseonhwi:0};
-  var SHORT = {michingamsung:'미친', heojunho:'준호', sinpureunsol:'푸른', naseongjun:'성준', kimseonhwi:'선휘', syunta:'슌타', satsuki:'사츠', honomi:'호노', ohani:'오하', kimdohyeon:'도현', seosanghwan:'상환', choiseongryung:'성륭', jordanshow:'조던', charlottewilson:'샬롯'};
+  var SHORT = {michingamsung:'미친', heojunho:'준호', sinpureunsol:'푸른', naseongjun:'성준', kimseonhwi:'선휘', syunta:'슌타', satsuki:'사츠', honomi:'호노', ohani:'오하', kimdohyeon:'도현', seosanghwan:'상환', choiseongryung:'성륭', jordanshow:'조던', charlottewilson:'샬롯', lenno:'레노'};
   // 해외 게스트 강의자: 항상 맨 위, 눈에 띄는 금색 배지로 표시
   var GUEST_IDS = {jordanshow:1, charlottewilson:1};
   function shortName(id){ return SHORT[id] || (pdName[id]||id).slice(0,2); }
@@ -166,7 +171,12 @@
   }
   function mins(t){ var p=t.split(':'); return parseInt(p[0],10)*60+parseInt(p[1],10); }
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function roleOf(title){ if(/검수/.test(title.replace(/검수\s*미정/g,''))) return 'rev'; if(/통역/.test(title)) return 'int'; return 'main'; }
+  function roleOf(title){
+    var t = title.replace(/검수\s*미정/g,'').replace(/통역\s*미정/g,'');
+    if(/검수/.test(t)) return 'rev';
+    if(/통역/.test(t)) return 'int';
+    return 'main';
+  }
   var ROLE_PRI = {main:3, int:2, rev:1};
   function cleanTitle(t){ return t.replace(/\s*\((마무리\/)?(통역|검수)\)\s*$/,''); }
 
@@ -256,6 +266,7 @@
     var list = merged;
     if(japanMode) list = list.filter(isJapanClass);
     else if(interpMode) list = list.filter(isInterpClass);
+    else if(missingMode) list = list.filter(isMissingAssignment);
     var anyOn = PD_IDS.some(function(id){ return active[id]; });
     if(!anyOn) return list;
     return list.filter(function(x){
@@ -325,9 +336,14 @@
 
   function renderViewMode(){
     document.querySelectorAll('.vtab').forEach(function(b){
-      b.classList.toggle('on', b.getAttribute('data-view')===(japanMode?'japan':(interpMode?'interp':'all')));
+      b.classList.toggle('on', b.getAttribute('data-view')===(japanMode?'japan':(interpMode?'interp':(missingMode?'missing':'all'))));
     });
-    if(japanMode){
+    if(missingMode){
+      document.getElementById('pageTitle').textContent = '검수·통역 미배정';
+      document.getElementById('pageTag').textContent = 'TODO';
+      document.getElementById('listTitle').textContent = '배정 필요한 일정';
+      document.getElementById('pageFooter').textContent = '통역이나 원어민 검수자가 꼭 필요한데 아직 한쪽(또는 둘 다) 배정이 안 된 수업만 모았어요. 배정이 끝나면 자동으로 이 목록에서 빠져요.';
+    } else if(japanMode){
       document.getElementById('pageTitle').textContent = '일본 전용 전체 스케쥴';
       document.getElementById('pageTag').textContent = 'JP';
       document.getElementById('listTitle').textContent = '일본 일정 전체';
@@ -509,10 +525,10 @@
   document.getElementById('viewTabs').addEventListener('click', function(ev){
     var b = ev.target.closest('.vtab'); if(!b) return;
     var v = b.getAttribute('data-view');
-    interpMode = (v==='interp'); japanMode = (v==='japan');
+    interpMode = (v==='interp'); japanMode = (v==='japan'); missingMode = (v==='missing');
     selectedDate = null; curYm = null;
     var url = new URL(location.href);
-    if(japanMode) url.searchParams.set('view','japan'); else if(interpMode) url.searchParams.set('view','interp'); else url.searchParams.delete('view');
+    if(japanMode) url.searchParams.set('view','japan'); else if(interpMode) url.searchParams.set('view','interp'); else if(missingMode) url.searchParams.set('view','missing'); else url.searchParams.delete('view');
     history.replaceState(null, '', url.pathname + (url.search ? url.search : ''));
     if(merged.length){
       var vis = visibleEvents();
