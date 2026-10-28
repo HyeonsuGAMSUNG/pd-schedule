@@ -110,7 +110,7 @@
   // 한중일 동시진행(신푸른솔이 늘 통역으로 들어가는) 수업만 — 중국1기·일본5기·TSM처럼 그 나라 학생만 모아 그 나라 통역자가
   // 알아서 진행하는 단일언어 수업은 이 탭에서 제외해요(통역자가 있어도 동시진행이 아니므로 넣지 않음).
   var SINGLE_LANG_CATS = {china:1, japan:1, tsm:1, toplinefree:1, mentor:1};
-  var ALWAYS_INTERP_CATS = {global1:1, globalcareer:1, trackdesign:1, jordan:1, hitmakers:1, ginger:1, bensamama:1};
+  var ALWAYS_INTERP_CATS = {global1:1, globalcareer:1, trackdesign:1, jordan:1, hitmakers:1, ginger:1, bensamama:1, hitsoundlaw:1};
   // 카테고리가 freelecture 등으로 따로 잡혀도 이 프로그램들의 무료특강/부속 행사는 늘 한중일 수업이에요.
   var ALWAYS_INTERP_TITLE_RE = /히트메이커스|트랙디자인/;
   function isAlwaysInterp(x){ return !!ALWAYS_INTERP_CATS[x.category] || ALWAYS_INTERP_TITLE_RE.test(x.title); }
