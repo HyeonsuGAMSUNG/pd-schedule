@@ -17,6 +17,21 @@
 .etable td.num,.etable th.num{text-align:right;white-space:nowrap}
 .etable td.num.dash{color:var(--muted-2)}
 .etable tr:hover td{background:var(--chip-bg)}
+.egrp{margin-top:22px}
+.egrp h2{font-size:1.05rem;font-weight:900;display:flex;align-items:baseline;gap:8px}
+.egrp h2 small{font-size:.74rem;font-weight:600;color:var(--muted-2)}
+.ecard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-top:8px}
+.ecard .tt{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.ecard .tt b{font-size:.95rem}
+.ecard .dl{font-size:.72rem;font-weight:800;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 8px;white-space:nowrap}
+.ecard .tot{margin-top:6px;font-size:.86rem;color:var(--muted)}
+.ecard .tot strong{color:var(--fg);font-size:1.05rem}
+.ecard .ctry{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+.ecard .ctry span{background:var(--chip-bg);border:1px solid var(--border);border-radius:8px;padding:2px 9px;font-size:.78rem;font-variant-numeric:tabular-nums}
+.ecard.ref{opacity:.8;border-style:dashed}
+.ebar{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.ebar button{font:inherit;font-size:.8rem;font-weight:800;border:1px solid var(--border);background:var(--chip-bg);color:var(--fg);border-radius:10px;padding:8px 14px;cursor:pointer}
+.ebar button.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
 </style>
 </head>
 <body>
@@ -34,11 +49,11 @@
 
 <div class="wrap">
   <div class="estats" id="stats"></div>
-  <div class="section-title"><h2>강의별 국가 인원</h2></div>
-  <div id="tableHost" class="empty">불러오는 중…</div>
+  <div class="ebar"><button type="button" class="pri" id="copyBtn">보고용 텍스트 복사</button><button type="button" id="viewBtn">표로 보기</button></div>
+  <div id="groupsHost" class="empty">불러오는 중…</div>
 
   <footer>
-    아임웹 Rest API에서 매일 11시 자동 수집해요. 번호+이름+이메일 기준으로 중복을 제거하고, 상품명으로 강의를 자동 분류해요(분류가 틀리면 마케팅팀에 알려주세요). 원본 데이터는 HS 업무 보고 사이트(work-check)와 같아요.
+    아임웹 Rest API에서 매일 11시 자동 수집해요. 번호+이름+이메일 기준으로 중복을 제거하고, 상품명으로 강의를 자동 분류해요(분류가 틀리면 마케팅팀에 알려주세요). 원본 데이터는 HS 업무 보고 사이트(work-check)와 같아요. 대분류(정규/특강/무료특강 및 설명회)와 마감일 표기는 마케팅팀 보고 양식을 따라요.
   </footer>
 </div>
 
@@ -52,28 +67,113 @@ function fmtSynced(iso){
   return o.month + '/' + o.day + ' ' + o.hour + ':' + o.minute;
 }
 
-fetch('data/enrollment.json?v=' + Date.now(), {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(EN){
-  document.getElementById('note').textContent = '마지막 수집 ' + fmtSynced(EN.syncedAt) + ' (아임웹 API 자동)';
+// 대분류: 정규 / 특강 / 무료특강 및 설명회 (마케팅팀 보고 양식과 같게)
+var GROUPS = [
+  {name:'정규', ids:['global_producer','beginner_13','beginner_cn2','beginner_jp5','ai_artist']},
+  {name:'특강', ids:['track_design_part2','jordan_shaw_paid','hitmakers_career_pre','hitmakers_regular','suno_lyrics']},
+  {name:'무료특강 및 설명회', ids:['preview_hitmakers','jordan_shaw_free']},
+  {name:'참고용 (보고서에 없는 집계)', ids:['track_design_part1','pop_to_kpop','suno_class'], ref:true}
+];
+// 보고 양식 이름·마감일 (마케팅팀이 올리는 표기). 바뀌면 여기만 고치면 돼요.
+var LABEL = {
+  global_producer:{n:'글로벌 프로듀서 1기', d:'10/20 마감', x:'중도합류'},
+  beginner_13:{n:'온라인 초급 13기', d:'11/20 마감'},
+  beginner_cn2:{n:'중국 온라인 초급 2기', d:'10/31 마감'},
+  beginner_jp5:{n:'일본 온라인 초급 5기', d:'11/17 마감'},
+  ai_artist:{n:'AI ARTIST 1기', d:'12/4 마감'},
+  track_design_part2:{n:'트랙 디자인 : PART 2', d:'11/19 마감'},
+  jordan_shaw_paid:{n:'조던쇼를 잡아라', d:'11/5 마감'},
+  hitmakers_career_pre:{n:'Hit Makers 사전신청'},
+  hitmakers_regular:{n:'HITMAKERS : 히트곡의 패턴', d:'12/17 마감'},
+  suno_lyrics:{n:'히트 작사 : SUNO 응용편', d:'11/5 마감'},
+  preview_hitmakers:{n:'무료특강 HITMAKERS : 히트곡의 패턴', d:'11/2 마감'}
+};
+var ORDER = ['한국','일본','중국','미국'];
+var EN = null;
 
+function nameOf(c){ var l = LABEL[c.id]; return l ? l.n : c.display; }
+function ctryText(c){
+  var ks = Object.keys(c.byCountry).sort(function(a,b){ return ORDER.indexOf(a) - ORDER.indexOf(b); });
+  return ks.map(function(k){ return k + ' ' + c.byCountry[k] + '명'; }).join(' / ');
+}
+function groupsOf(){
+  var byId = {}; EN.courses.forEach(function(c){ byId[c.id] = c; });
+  var used = {};
+  var out = GROUPS.map(function(g){
+    var list = g.ids.map(function(id){ used[id] = 1; return byId[id]; }).filter(Boolean);
+    return {name:g.name, ref:g.ref, list:list};
+  });
+  var rest = EN.courses.filter(function(c){ return !used[c.id]; });
+  if(rest.length) out.push({name:'기타 (분류 안 된 상품)', ref:true, list:rest});
+  return out.filter(function(g){ return g.list.length; });
+}
+function stampText(){
+  var d = new Date(EN.syncedAt);
+  var p = new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Seoul', year:'2-digit', month:'2-digit', day:'2-digit', hour:'numeric', minute:'2-digit', hourCycle:'h23'}).formatToParts(d);
+  var o = {}; p.forEach(function(x){ o[x.type] = x.value; });
+  var h = parseInt(o.hour,10), ap = h < 12 ? 'AM' : 'PM', h12 = h % 12 === 0 ? 12 : h % 12;
+  return o.year + '/' + parseInt(o.month,10) + '/' + parseInt(o.day,10) + ' ' + ap + ' ' + h12 + ':' + o.minute;
+}
+function reportText(){
+  var t = '모집현황 ' + stampText() + '\n';
+  groupsOf().filter(function(g){ return !g.ref; }).forEach(function(g){
+    t += '\n[' + g.name + ']\n';
+    g.list.forEach(function(c){
+      var l = LABEL[c.id] || {};
+      t += '\n' + nameOf(c) + (l.d ? ' [' + l.d + ']' : '') + (l.x || '') + '\n\n1. 총 ' + c.total + '명\n\n' + ctryText(c) + '\n';
+    });
+  });
+  return t;
+}
+function renderCards(){
+  var html = groupsOf().map(function(g){
+    return '<div class="egrp"><h2>[' + esc(g.name) + ']<small>' + g.list.length + '개</small></h2>' +
+      g.list.map(function(c){
+        var l = LABEL[c.id] || {};
+        return '<div class="ecard' + (g.ref ? ' ref' : '') + '"><div class="tt"><b>' + esc(nameOf(c)) + (l.x ? ' <small>' + esc(l.x) + '</small>' : '') + '</b>' +
+          (l.d ? '<span class="dl">' + esc(l.d) + '</span>' : '') + '</div>' +
+          '<div class="tot">총 <strong>' + c.total + '</strong>명</div>' +
+          '<div class="ctry">' + Object.keys(c.byCountry).sort(function(a,b){ return ORDER.indexOf(a) - ORDER.indexOf(b); }).map(function(k){ return '<span>' + esc(k) + ' ' + c.byCountry[k] + '명</span>'; }).join('') + '</div></div>';
+      }).join('') + '</div>';
+  }).join('');
+  document.getElementById('groupsHost').outerHTML = '<div id="groupsHost">' + html + '</div>';
+}
+function renderTable(){
   var countries = [];
   EN.courses.forEach(function(c){ Object.keys(c.byCountry).forEach(function(k){ if (countries.indexOf(k) < 0) countries.push(k); }); });
-  var order = ['한국','일본','중국','미국'];
-  countries.sort(function(a,b){ return order.indexOf(a) - order.indexOf(b); });
+  countries.sort(function(a,b){ return ORDER.indexOf(a) - ORDER.indexOf(b); });
+  var rows = '';
+  groupsOf().forEach(function(g){
+    rows += '<tr><td colspan="' + (countries.length + 2) + '"><b>[' + esc(g.name) + ']</b></td></tr>';
+    g.list.forEach(function(c){
+      rows += '<tr><td>' + esc(nameOf(c)) + '</td>' + countries.map(function(cn){ var n = c.byCountry[cn]; return '<td class="num' + (n ? '' : ' dash') + '">' + (n || '–') + '</td>'; }).join('') + '<td class="num"><b>' + c.total + '</b></td></tr>';
+    });
+  });
+  document.getElementById('groupsHost').outerHTML = '<div id="groupsHost"><table class="etable"><tr><th>강의</th>' + countries.map(function(c){ return '<th class="num">' + esc(c) + '</th>'; }).join('') + '<th class="num">합계</th></tr>' + rows + '</table></div>';
+}
 
+fetch('data/enrollment.json?v=' + Date.now(), {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(data){
+  EN = data;
+  document.getElementById('note').textContent = '마지막 수집 ' + fmtSynced(EN.syncedAt) + ' (아임웹 API 자동)';
   var totalAll = EN.courses.reduce(function(a,c){ return a + c.total; }, 0);
   document.getElementById('stats').innerHTML = [[EN.courses.length,'집계된 강의 수'],[totalAll,'전체 인원(중복제거)']]
     .map(function(x){ return '<div class="estat"><b>' + x[0] + '</b><span>' + x[1] + '</span></div>'; }).join('');
-
-  var html = '<table class="etable"><tr><th>강의</th>' + countries.map(function(c){ return '<th class="num">' + esc(c) + '</th>'; }).join('') + '<th class="num">합계</th></tr>' +
-    EN.courses.map(function(c){
-      return '<tr><td><b>' + esc(c.display) + '</b></td>' +
-        countries.map(function(cn){ var n = c.byCountry[cn]; return '<td class="num' + (n ? '' : ' dash') + '">' + (n || '–') + '</td>'; }).join('') +
-        '<td class="num"><b>' + c.total + '</b></td></tr>';
-    }).join('') + '</table>';
-  document.getElementById('tableHost').outerHTML = html;
+  renderCards();
+  var mode = 'cards';
+  document.getElementById('viewBtn').addEventListener('click', function(){
+    mode = mode === 'cards' ? 'table' : 'cards';
+    this.textContent = mode === 'cards' ? '표로 보기' : '카드로 보기';
+    if(mode === 'cards') renderCards(); else renderTable();
+  });
+  document.getElementById('copyBtn').addEventListener('click', function(){
+    var btn = this, txt = reportText();
+    function done(){ btn.textContent = '복사했어요'; setTimeout(function(){ btn.textContent = '보고용 텍스트 복사'; }, 1800); }
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).then(done, function(){ window.prompt('복사해서 쓰세요', txt); }); }
+    else { window.prompt('복사해서 쓰세요', txt); }
+  });
 }).catch(function(){
   document.getElementById('note').textContent = '불러오기 실패';
-  document.getElementById('tableHost').textContent = '데이터를 불러오지 못했어요.';
+  document.getElementById('groupsHost').textContent = '데이터를 불러오지 못했어요.';
 });
 </script>
 
