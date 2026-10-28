@@ -59,6 +59,7 @@
   <div class="viewtabs" id="viewTabs">
     <button type="button" class="vtab" data-view="all">전체 스케쥴</button>
     <button type="button" class="vtab" data-view="interp">🌏 한중일 통역 수업</button>
+    <button type="button" class="vtab" data-view="japan">🇯🇵 일본 전용</button>
   </div>
   <div class="filters" id="filters"></div>
   <div id="conflictArea"></div>
@@ -121,13 +122,20 @@
     return Object.keys(x.people).some(function(p){ return x.people[p]==='int'; });
   }
   function missingInterpNote(x){
-    if(!interpMode || !x.blocks || !isAlwaysInterp(x)) return '';
+    if((!interpMode && !japanMode) || !x.blocks || !isAlwaysInterp(x)) return '';
     var hasInt = Object.keys(x.people).some(function(p){ return x.people[p]==='int'; });
     var hasRev = Object.keys(x.people).some(function(p){ return x.people[p]==='rev'; });
     return (hasInt ? '' : '<div class="cnote interp">⚠ 아직 통역자가 배정 안 됐어요</div>')
       + (hasRev ? '' : '<div class="cnote interp">⚠ 아직 원어민 검수자가 배정 안 됐어요</div>');
   }
   var interpMode = /(^|[?&])view=interp(&|$)/.test(location.search);
+  var japanMode = /(^|[?&])view=japan(&|$)/.test(location.search);
+  // 일본 전용: 일본 학생이 듣는 수업(일본 5기·TSM·일본 초급 5기·레노 합동) + 한중일 동시진행 수업
+  function isJapanClass(x){
+    if(x.category==='japan' || x.category==='tsm') return true;
+    if(/일본|LENNO|레노/.test(x.title)) return true;
+    return isInterpClass(x);
+  }
   var DOW = ['일','월','화','수','목','금','토'];
   var WINDOW_MIN = 180;
   var PD_HUE = {michingamsung:270, naseongjun:48, heojunho:215, kimseonhwi:0};
@@ -236,14 +244,18 @@
     conflictByDate = indexOne(conflicts);
     interpConflicts = conflicts.filter(function(c){ return isInterpClass(c.a) && isInterpClass(c.b); });
     conflictByDateInterp = indexOne(interpConflicts);
+    japanConflicts = conflicts.filter(function(c){ return isJapanClass(c.a) && isJapanClass(c.b); });
+    conflictByDateJapan = indexOne(japanConflicts);
   }
-  function curConflicts(){ return interpMode ? interpConflicts : conflicts; }
-  function curConflictByDate(){ return interpMode ? conflictByDateInterp : conflictByDate; }
+  var japanConflicts = [], conflictByDateJapan = {};
+  function curConflicts(){ return japanMode ? japanConflicts : (interpMode ? interpConflicts : conflicts); }
+  function curConflictByDate(){ return japanMode ? conflictByDateJapan : (interpMode ? conflictByDateInterp : conflictByDate); }
 
   // ---------- filtering ----------
   function visibleEvents(){
     var list = merged;
-    if(interpMode) list = list.filter(isInterpClass);
+    if(japanMode) list = list.filter(isJapanClass);
+    else if(interpMode) list = list.filter(isInterpClass);
     var anyOn = PD_IDS.some(function(id){ return active[id]; });
     if(!anyOn) return list;
     return list.filter(function(x){
@@ -313,9 +325,14 @@
 
   function renderViewMode(){
     document.querySelectorAll('.vtab').forEach(function(b){
-      b.classList.toggle('on', b.getAttribute('data-view')===(interpMode?'interp':'all'));
+      b.classList.toggle('on', b.getAttribute('data-view')===(japanMode?'japan':(interpMode?'interp':'all')));
     });
-    if(interpMode){
+    if(japanMode){
+      document.getElementById('pageTitle').textContent = '일본 전용 전체 스케쥴';
+      document.getElementById('pageTag').textContent = 'JP';
+      document.getElementById('listTitle').textContent = '일본 일정 전체';
+      document.getElementById('pageFooter').textContent = '일본 학생이 듣는 수업(일본 5기, 일본 유학반 TSM, 일본 온라인 초급 5기, 레노 합동 수업)과 한중일 동시진행 수업(글로벌 1기·트랙디자인·조던쇼·히트메이커스 등)만 모았어요. 통역·검수는 각 수업 아래에 표시하고, 검수자가 아직 없는 한중일 수업은 경고로 알려줘요.';
+    } else if(interpMode){
       document.getElementById('pageTitle').textContent = '한중일 통역 수업';
       document.getElementById('pageTag').textContent = 'INT';
       document.getElementById('listTitle').textContent = '통역 수업 전체 일정';
@@ -492,10 +509,10 @@
   document.getElementById('viewTabs').addEventListener('click', function(ev){
     var b = ev.target.closest('.vtab'); if(!b) return;
     var v = b.getAttribute('data-view');
-    interpMode = (v==='interp');
+    interpMode = (v==='interp'); japanMode = (v==='japan');
     selectedDate = null; curYm = null;
     var url = new URL(location.href);
-    if(interpMode) url.searchParams.set('view','interp'); else url.searchParams.delete('view');
+    if(japanMode) url.searchParams.set('view','japan'); else if(interpMode) url.searchParams.set('view','interp'); else url.searchParams.delete('view');
     history.replaceState(null, '', url.pathname + (url.search ? url.search : ''));
     if(merged.length){
       var vis = visibleEvents();
