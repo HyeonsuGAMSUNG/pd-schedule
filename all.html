@@ -157,7 +157,7 @@
   }
   function mins(t){ var p=t.split(':'); return parseInt(p[0],10)*60+parseInt(p[1],10); }
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-  function roleOf(title){ if(/검수/.test(title)) return 'rev'; if(/통역/.test(title)) return 'int'; return 'main'; }
+  function roleOf(title){ if(/검수/.test(title.replace(/검수\s*미정/g,''))) return 'rev'; if(/통역/.test(title)) return 'int'; return 'main'; }
   var ROLE_PRI = {main:3, int:2, rev:1};
   function cleanTitle(t){ return t.replace(/\s*\((마무리\/)?(통역|검수)\)\s*$/,''); }
 
