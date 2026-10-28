@@ -38,6 +38,23 @@ body.adm-on .rbook{cursor:grab}
   .rbook b{font-size:.6rem}
   .rbook .tm{display:none}
 }
+.nowbanner{margin-top:14px;padding:12px 14px;border-radius:12px;font-size:.92rem;font-weight:800;display:flex;align-items:center;gap:10px;border:1px solid transparent;line-height:1.4}
+.nowbanner .dot{width:11px;height:11px;border-radius:50%;flex:none}
+.nowbanner.free{background:var(--good-bg);color:var(--good);border-color:var(--good)}
+.nowbanner.free .dot{background:var(--good)}
+.nowbanner.busy{background:var(--bad-bg);color:var(--bad);border-color:var(--bad)}
+.nowbanner.busy .dot{background:var(--bad);animation:livepulse 1.1s ease-in-out infinite}
+.nowbanner.off{background:var(--chip-bg);color:var(--muted);border-color:var(--border)}
+.nowbanner.off .dot{background:var(--muted-2)}
+.nowbanner small{display:block;font-weight:600;font-size:.78rem;opacity:.9;margin-top:2px}
+.nowbanner .tm{font-family:'IBM Plex Mono',monospace;font-weight:600}
+.rbook.live{box-shadow:0 0 0 2px var(--bad);animation:liveglow 1.6s ease-in-out infinite}
+.livetag{display:inline-block;background:var(--bad);color:#fff;border-radius:999px;font-size:.56rem;font-weight:900;padding:0 6px;margin-bottom:2px;animation:livepulse 1.1s ease-in-out infinite}
+.rt.now{color:var(--accent);font-weight:900}
+.rcell.nowcell{box-shadow:inset 0 0 0 2px var(--accent)}
+@keyframes livepulse{0%,100%{opacity:1}50%{opacity:.35}}
+@keyframes liveglow{0%,100%{box-shadow:0 0 0 2px var(--bad)}50%{box-shadow:0 0 0 4px rgba(192,57,63,.35)}}
+@media (prefers-reduced-motion: reduce){.nowbanner.busy .dot,.livetag,.rbook.live{animation:none}}
 .rlist{margin-top:10px}
 .rlist .rday{margin-top:14px;font-weight:900;font-size:.9rem}
 .rlist .rday small{font-weight:600;color:var(--muted-2);margin-left:6px}
@@ -63,6 +80,7 @@ body.adm-on .rbook{cursor:grab}
 </header>
 
 <div class="wrap">
+  <div class="nowbanner off" id="nowBanner"></div>
   <div class="rnav">
     <button type="button" id="prevW" aria-label="이전 주">‹</button>
     <button type="button" class="today-btn" id="todayW">이번 주</button>
@@ -103,6 +121,46 @@ body.adm-on .rbook{cursor:grab}
   function endTime(b){ var h = hourOf(b.time) + (b.dur||1); return pad(h)+':'+b.time.split(':')[1]; }
   function todayStr(){ return ds(new Date()); }
   function md(d){ return (d.getMonth()+1)+'/'+d.getDate(); }
+  function nowParts(){ var n = new Date(); return {date:ds(n), h:n.getHours(), m:n.getMinutes(), min:n.getHours()*60+n.getMinutes(), wd:n.getDay()}; }
+  function minsOf(t){ var p=t.split(':'); return parseInt(p[0],10)*60+parseInt(p[1],10); }
+  function liveBooking(){
+    var n = nowParts();
+    for(var i=0;i<bookings.length;i++){
+      var b = bookings[i]; if(b.date!==n.date) continue;
+      var s = minsOf(b.time), e = s + (b.dur||1)*60;
+      if(n.min>=s && n.min<e) return b;
+    }
+    return null;
+  }
+  function nextBooking(){
+    var n = nowParts(), best = null;
+    bookings.forEach(function(b){
+      var s = minsOf(b.time);
+      if(b.date===n.date ? s>n.min : b.date>n.date){
+        if(!best || b.date<best.date || (b.date===best.date && s<minsOf(best.time))) best = b;
+      }
+    });
+    return best;
+  }
+  function renderNow(){
+    var el = document.getElementById('nowBanner'); if(!el) return;
+    var n = nowParts(), hh = pad(n.h)+':'+pad(n.m);
+    var live = liveBooking(), nxt = nextBooking();
+    var nxtTxt = nxt ? ('다음 예약 '+(nxt.date===n.date?'오늘':md(parse(nxt.date))+'('+DOW[parse(nxt.date).getDay()]+')')+' <span class="tm">'+nxt.time+'~'+endTime(nxt)+'</span> '+esc(nxt.who)+' · '+esc(nxt.purpose||'')) : '다가오는 예약 없음';
+    if(n.wd===0 || n.wd===6){
+      el.className = 'nowbanner off';
+      el.innerHTML = '<span class="dot"></span><span>주말이에요 · 평일만 운영<small>'+nxtTxt+'</small></span>';
+    } else if(live){
+      el.className = 'nowbanner busy';
+      el.innerHTML = '<span class="dot"></span><span>지금 사용 중 · <span class="tm">'+live.time+'~'+endTime(live)+'</span> '+esc(live.who)+' · '+esc(live.purpose||'')+'<small>'+hh+' 현재 · '+nxtTxt+'</small></span>';
+    } else if(n.h<START_H || n.h>=END_H){
+      el.className = 'nowbanner off';
+      el.innerHTML = '<span class="dot"></span><span>지금은 운영 시간(평일 '+pad(START_H)+':00~'+pad(END_H)+':00)이 아니에요<small>'+nxtTxt+'</small></span>';
+    } else {
+      el.className = 'nowbanner free';
+      el.innerHTML = '<span class="dot"></span><span>지금 비어 있음<small>'+hh+' 현재 · '+nxtTxt+'</small></span>';
+    }
+  }
   function isWeekday(s){ var w = parse(s).getDay(); return w>=1 && w<=5; }
 
   // 해당 시간대에 예약이 겹치는지 (exclude: 자기 자신)
@@ -119,15 +177,17 @@ body.adm-on .rbook{cursor:grab}
     var days = [0,1,2,3,4].map(function(i){ return addDays(weekStart, i); });
     document.getElementById('weekLabel').textContent = md(days[0])+' ~ '+md(days[4])+' ('+days[0].getFullYear()+')';
     var today = todayStr();
+    var liveNow = liveBooking();
+    var np = nowParts();
     var rows = END_H - START_H;
     var html = '<div></div>' + days.map(function(d){
       return '<div class="rh'+(ds(d)===today?' today':'')+'">'+md(d)+'<span class="dn">'+DOW[d.getDay()]+'</span></div>';
     }).join('');
     for(var h=START_H; h<END_H; h++){
-      html += '<div class="rt" style="grid-row:'+(h-START_H+2)+';grid-column:1">'+pad(h)+':00</div>';
+      html += '<div class="rt'+((np.h===h && days.map(ds).indexOf(np.date)>=0)?' now':'')+'" style="grid-row:'+(h-START_H+2)+';grid-column:1">'+pad(h)+':00</div>';
       days.forEach(function(d, j){
         var past = ds(d) < today;
-        html += '<div class="rcell'+(past?' past':'')+'" data-date="'+ds(d)+'" data-h="'+h+'" style="grid-row:'+(h-START_H+2)+';grid-column:'+(j+2)+'"></div>';
+        html += '<div class="rcell'+(past?' past':'')+((ds(d)===np.date && np.h===h)?' nowcell':'')+'" data-date="'+ds(d)+'" data-h="'+h+'" style="grid-row:'+(h-START_H+2)+';grid-column:'+(j+2)+'"></div>';
       });
     }
     var shown = 0;
@@ -136,15 +196,16 @@ body.adm-on .rbook{cursor:grab}
       var h = hourOf(b.time); if(h<START_H || h>=END_H) return;
       var dur = Math.min(b.dur||1, END_H-h);
       var past = b.date < today;
-      html += '<div class="rbook'+(past?' past':'')+'" data-i="'+i+'"'+(admin.on?' draggable="true"':'')+' title="'+esc(b.date+' '+b.time+'~'+endTime(b)+' '+b.who+' : '+b.purpose)+'" style="grid-row:'+(h-START_H+2)+' / span '+dur+';grid-column:'+(j+2)+'">'
-        + '<b>'+esc(b.who)+'</b><span>'+esc(b.purpose||'')+'</span><span class="tm">'+b.time+'~'+endTime(b)+'</span></div>';
+      var isLive = (b === liveNow);
+      html += '<div class="rbook'+(past?' past':'')+(isLive?' live':'')+'" data-i="'+i+'"'+(admin.on?' draggable="true"':'')+' title="'+esc(b.date+' '+b.time+'~'+endTime(b)+' '+b.who+' : '+b.purpose)+'" style="grid-row:'+(h-START_H+2)+' / span '+dur+';grid-column:'+(j+2)+'">'
+        + (isLive?'<span class="livetag">사용 중</span>':'') + '<b>'+esc(b.who)+'</b><span>'+esc(b.purpose||'')+'</span><span class="tm">'+b.time+'~'+endTime(b)+'</span></div>';
       shown++;
     });
     var g = document.getElementById('grid');
     g.style.gridTemplateRows = 'auto repeat('+rows+', 46px)';
     g.innerHTML = html;
     document.getElementById('sumrow').textContent = '이번 주 예약 '+shown+'건 · 평일 '+pad(START_H)+':00~'+pad(END_H)+':00';
-    renderList();
+    renderList(); renderNow();
     document.getElementById('note').textContent = '전체 예약 '+bookings.length+'건 · 평일만 표시'+syncNote;
     if(window.PDAdmin) PDAdmin.updateBar();
   }
@@ -275,7 +336,8 @@ body.adm-on .rbook{cursor:grab}
   var now = new Date(); var wd = now.getDay();
   weekStart = mondayOf(wd===0 ? addDays(now,1) : (wd===6 ? addDays(now,2) : now));
   load();
-  setInterval(function(){ if(!admin.on) load(); }, 60000);
+  setInterval(function(){ if(!admin.on) load(); else renderNow(); }, 60000);
+  setInterval(function(){ if(!admin.on) render(); else renderNow(); }, 30000);
 })();
 </script>
 
