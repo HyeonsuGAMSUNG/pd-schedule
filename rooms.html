@@ -118,7 +118,7 @@ body.adm-on .rbook{cursor:grab}
   function mondayOf(d){ var x=new Date(d.getFullYear(), d.getMonth(), d.getDate()); var w=x.getDay(); x.setDate(x.getDate()-((w+6)%7)); return x; }
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
   function hourOf(t){ return parseInt(t.split(':')[0],10); }
-  function endTime(b){ var h = hourOf(b.time) + (b.dur||1); return pad(h)+':'+b.time.split(':')[1]; }
+  function endTime(b){ if(b.open) return '종료 미정'; var h = hourOf(b.time) + (b.dur||1); return pad(h)+':'+b.time.split(':')[1]; }
   function todayStr(){ return ds(new Date()); }
   function md(d){ return (d.getMonth()+1)+'/'+d.getDate(); }
   function nowParts(){ var n = new Date(); return {date:ds(n), h:n.getHours(), m:n.getMinutes(), min:n.getHours()*60+n.getMinutes(), wd:n.getDay()}; }
