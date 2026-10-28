@@ -1,0 +1,149 @@
+{
+ "syncedAt": "2026-10-28T11:49:42.487591+09:00",
+ "courses": [
+  {
+   "id": "jordan_shaw_free",
+   "display": "조던쇼를 잡아라 무료특강 (참고용)",
+   "total": 256,
+   "byCountry": {
+    "한국": 169,
+    "일본": 46,
+    "중국": 41
+   }
+  },
+  {
+   "id": "suno_class",
+   "display": "SUNO 작곡 클래스 (일반, 참고용)",
+   "total": 227,
+   "byCountry": {
+    "한국": 204,
+    "일본": 18,
+    "미국": 1,
+    "중국": 4
+   }
+  },
+  {
+   "id": "track_design_part1",
+   "display": "트랙 디자인 PART1 (드럼&베이스, 참고용 전체)",
+   "total": 183,
+   "byCountry": {
+    "한국": 71,
+    "일본": 88,
+    "미국": 1,
+    "중국": 23
+   }
+  },
+  {
+   "id": "pop_to_kpop",
+   "display": "HIT MAKERS : POP to K-POP Masterclass (참고용, 별도 상품)",
+   "total": 167,
+   "byCountry": {
+    "한국": 94,
+    "일본": 54,
+    "미국": 1,
+    "중국": 18
+   }
+  },
+  {
+   "id": "preview_hitmakers",
+   "display": "[PREVIEW] HITMAKERS 히트곡의 패턴",
+   "total": 151,
+   "byCountry": {
+    "한국": 119,
+    "일본": 24,
+    "중국": 8
+   }
+  },
+  {
+   "id": "global_producer",
+   "display": "글로벌 프로듀서 1기",
+   "total": 138,
+   "byCountry": {
+    "한국": 79,
+    "일본": 39,
+    "미국": 2,
+    "중국": 18
+   }
+  },
+  {
+   "id": "hitmakers_career_pre",
+   "display": "Hit Makers 사전신청 (글로벌 커리어 1기)",
+   "total": 44,
+   "byCountry": {
+    "한국": 24,
+    "일본": 14,
+    "중국": 6
+   }
+  },
+  {
+   "id": "track_design_part2",
+   "display": "트랙 디자인 PART2 (테마/화성/보컬)",
+   "total": 43,
+   "byCountry": {
+    "한국": 29,
+    "일본": 6,
+    "미국": 1,
+    "중국": 7
+   }
+  },
+  {
+   "id": "suno_lyrics",
+   "display": "히트 작사의 수학적 법칙 (SUNO 응용편)",
+   "total": 28,
+   "byCountry": {
+    "한국": 28
+   }
+  },
+  {
+   "id": "ai_artist",
+   "display": "AI ARTIST 1기",
+   "total": 20,
+   "byCountry": {
+    "한국": 20
+   }
+  },
+  {
+   "id": "beginner_jp5",
+   "display": "일본 온라인 초급 5기",
+   "total": 10,
+   "byCountry": {
+    "일본": 10
+   }
+  },
+  {
+   "id": "beginner_13",
+   "display": "온라인 초급 13기 (한국)",
+   "total": 9,
+   "byCountry": {
+    "한국": 9
+   }
+  },
+  {
+   "id": "jordan_shaw_paid",
+   "display": "조던쇼를 잡아라 프로젝트",
+   "total": 8,
+   "byCountry": {
+    "한국": 4,
+    "일본": 1,
+    "중국": 3
+   }
+  },
+  {
+   "id": "hitmakers_regular",
+   "display": "HITMAKERS 정규 (히트곡의 패턴)",
+   "total": 7,
+   "byCountry": {
+    "한국": 5,
+    "일본": 2
+   }
+  },
+  {
+   "id": "beginner_cn2",
+   "display": "중국 온라인 초급 2기",
+   "total": 3,
+   "byCountry": {
+    "중국": 3
+   }
+  }
+ ]
+}
