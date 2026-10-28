@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>회의실 예약 현황</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800;900&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="style.css?v=20261015b">
+<style>
+.rnav{display:flex;align-items:center;justify-content:space-between;margin-top:18px;gap:8px}
+.rnav button{background:var(--chip-bg);border:1px solid var(--border);color:var(--fg);border-radius:10px;width:40px;height:40px;font-size:1.1rem;cursor:pointer;flex:none}
+.rnav .label{font-size:1.05rem;font-weight:900;text-align:center;flex:1}
+.rnav .today-btn{width:auto;padding:0 12px;font-size:.78rem;font-weight:800}
+.rlegend{display:flex;gap:14px;margin-top:10px;font-size:.8rem;color:var(--muted);flex-wrap:wrap}
+.rlegend .sw{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.rlegend .sw.free{background:var(--good)}
+.rlegend .sw.busy{background:var(--bad)}
+.rg{display:grid;grid-template-columns:42px repeat(5,minmax(0,1fr));gap:3px;margin-top:12px}
+.rh{text-align:center;font-size:.78rem;font-weight:800;padding:6px 0;border-radius:8px;background:var(--chip-bg);color:var(--muted)}
+.rh.today{background:var(--accent);color:var(--accent-fg)}
+.rh .dn{display:block;font-size:.66rem;font-weight:600;opacity:.8}
+.rt{font-family:'IBM Plex Mono',monospace;font-size:.68rem;color:var(--muted-2);text-align:right;padding:3px 4px 0 0}
+.rcell{background:var(--good-bg);border-radius:6px;min-height:44px;border:1px solid transparent}
+.rcell.past{opacity:.55}
+.rbook{background:var(--bad-bg);border:1px solid var(--bad);border-radius:6px;padding:3px 4px;overflow:hidden;font-size:.68rem;line-height:1.25;color:var(--fg);z-index:1;min-width:0}
+.rbook b{display:block;font-weight:800;color:var(--bad);font-size:.72rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rbook span{display:block;overflow:hidden;text-overflow:ellipsis;word-break:keep-all}
+.rbook.past{opacity:.55}
+.rbook .tm{font-family:'IBM Plex Mono',monospace;font-size:.58rem;color:var(--muted);margin-top:1px}
+body.adm-on .rcell{cursor:pointer}
+body.adm-on .rbook{cursor:grab}
+@media (max-width:480px){
+  .rg{grid-template-columns:34px repeat(5,minmax(0,1fr));gap:2px}
+  .rh{font-size:.66rem;padding:5px 0}
+  .rh .dn{font-size:.56rem}
+  .rt{font-size:.58rem}
+  .rbook{padding:2px 2px;font-size:.58rem}
+  .rbook b{font-size:.6rem}
+  .rbook .tm{display:none}
+}
+.rlist{margin-top:10px}
+.rlist .rday{margin-top:14px;font-weight:900;font-size:.9rem}
+.rlist .rday small{font-weight:600;color:var(--muted-2);margin-left:6px}
+.rlist .ritem{display:flex;gap:10px;align-items:center;background:var(--chip-bg);border:1px solid var(--border);border-radius:10px;padding:9px 12px;margin-top:6px;font-size:.88rem}
+.rlist .ritem .t{font-family:'IBM Plex Mono',monospace;font-size:.8rem;color:var(--muted);width:92px;flex:none}
+.rlist .ritem b{font-weight:800}
+.rlist .ritem.past{opacity:.55}
+.sumrow{margin-top:12px;font-size:.8rem;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="backlink" href="index.html">‹ 목록</a>
+    <div class="brand">
+      <h1>회의실 예약 현황</h1>
+      <span class="tag-rec">ROOM</span>
+    </div>
+    <div class="sub" id="note">불러오는 중…</div>
+    <button type="button" class="adm-btn" id="admBtn">관리자</button>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="rnav">
+    <button type="button" id="prevW" aria-label="이전 주">‹</button>
+    <button type="button" class="today-btn" id="todayW">이번 주</button>
+    <span class="label" id="weekLabel"></span>
+    <button type="button" id="nextW" aria-label="다음 주">›</button>
+  </div>
+  <div class="rlegend"><span><span class="sw free"></span>비어있음</span><span><span class="sw busy"></span>예약 있음</span><span>평일만 · 시간별</span></div>
+  <div class="rg" id="grid"></div>
+  <div class="sumrow" id="sumrow"></div>
+
+  <div class="section-title"><h2>이번 달 이후 예약 목록</h2></div>
+  <div class="rlist" id="list"></div>
+
+  <footer>
+    회의실 예약 현황이에요. 예약하려면 관리자에게 날짜·시간·이름·목적을 알려 주세요. 관리자가 "관리자" 버튼으로 열어 빈 칸을 누르면 예약을 넣을 수 있고, 예약을 끌어서 다른 시간으로 옮길 수도 있어요.
+  </footer>
+</div>
+
+<script src="admin.js?v=2"></script>
+<script>
+(function(){
+  var START_H = 9, END_H = 21;      // 09:00 ~ 21:00 (시간별 칸)
+  var DOW = ['일','월','화','수','목','금','토'];
+  var bookings = [];                 // {date, time:'HH:MM', dur:시간, who, purpose}
+  var weekStart = null;              // 해당 주 월요일 (Date)
+  var moving = null;
+
+  var admin = {};
+  Object.defineProperty(admin, 'on', {get:function(){ return !!(window.PDAdmin && PDAdmin.isOn()); }});
+
+  function pad(n){ return (n<10?'0':'')+n; }
+  function ds(d){ return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function parse(s){ var p=s.split('-').map(Number); return new Date(p[0],p[1]-1,p[2]); }
+  function addDays(d,n){ var x=new Date(d.getFullYear(), d.getMonth(), d.getDate()+n); return x; }
+  function mondayOf(d){ var x=new Date(d.getFullYear(), d.getMonth(), d.getDate()); var w=x.getDay(); x.setDate(x.getDate()-((w+6)%7)); return x; }
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function hourOf(t){ return parseInt(t.split(':')[0],10); }
+  function endTime(b){ var h = hourOf(b.time) + (b.dur||1); return pad(h)+':'+b.time.split(':')[1]; }
+  function todayStr(){ return ds(new Date()); }
+  function md(d){ return (d.getMonth()+1)+'/'+d.getDate(); }
+  function isWeekday(s){ var w = parse(s).getDay(); return w>=1 && w<=5; }
+
+  // 해당 시간대에 예약이 겹치는지 (exclude: 자기 자신)
+  function overlap(date, startH, dur, exclude){
+    for(var i=0;i<bookings.length;i++){
+      var b = bookings[i]; if(b===exclude || b.date!==date) continue;
+      var s = hourOf(b.time), e = s + (b.dur||1);
+      if(startH < e && startH + dur > s) return b;
+    }
+    return null;
+  }
+
+  function render(){
+    var days = [0,1,2,3,4].map(function(i){ return addDays(weekStart, i); });
+    document.getElementById('weekLabel').textContent = md(days[0])+' ~ '+md(days[4])+' ('+days[0].getFullYear()+')';
+    var today = todayStr();
+    var rows = END_H - START_H;
+    var html = '<div></div>' + days.map(function(d){
+      return '<div class="rh'+(ds(d)===today?' today':'')+'">'+md(d)+'<span class="dn">'+DOW[d.getDay()]+'</span></div>';
+    }).join('');
+    for(var h=START_H; h<END_H; h++){
+      html += '<div class="rt" style="grid-row:'+(h-START_H+2)+';grid-column:1">'+pad(h)+':00</div>';
+      days.forEach(function(d, j){
+        var past = ds(d) < today;
+        html += '<div class="rcell'+(past?' past':'')+'" data-date="'+ds(d)+'" data-h="'+h+'" style="grid-row:'+(h-START_H+2)+';grid-column:'+(j+2)+'"></div>';
+      });
+    }
+    var shown = 0;
+    bookings.forEach(function(b, i){
+      var j = days.map(ds).indexOf(b.date); if(j<0) return;
+      var h = hourOf(b.time); if(h<START_H || h>=END_H) return;
+      var dur = Math.min(b.dur||1, END_H-h);
+      var past = b.date < today;
+      html += '<div class="rbook'+(past?' past':'')+'" data-i="'+i+'"'+(admin.on?' draggable="true"':'')+' title="'+esc(b.date+' '+b.time+'~'+endTime(b)+' '+b.who+' : '+b.purpose)+'" style="grid-row:'+(h-START_H+2)+' / span '+dur+';grid-column:'+(j+2)+'">'
+        + '<b>'+esc(b.who)+'</b><span>'+esc(b.purpose||'')+'</span><span class="tm">'+b.time+'~'+endTime(b)+'</span></div>';
+      shown++;
+    });
+    var g = document.getElementById('grid');
+    g.style.gridTemplateRows = 'auto repeat('+rows+', 46px)';
+    g.innerHTML = html;
+    document.getElementById('sumrow').textContent = '이번 주 예약 '+shown+'건 · 평일 '+pad(START_H)+':00~'+pad(END_H)+':00';
+    renderList();
+    document.getElementById('note').textContent = '전체 예약 '+bookings.length+'건 · 평일만 표시';
+    if(window.PDAdmin) PDAdmin.updateBar();
+  }
+
+  function renderList(){
+    var now = todayStr();
+    var ym = now.slice(0,7);
+    var items = bookings.map(function(b,i){ return {b:b,i:i}; }).filter(function(x){ return x.b.date.slice(0,7) >= ym; })
+      .sort(function(a,b){ return a.b.date===b.b.date ? a.b.time.localeCompare(b.b.time) : (a.b.date<b.b.date?-1:1); });
+    var el = document.getElementById('list');
+    if(!items.length){ el.innerHTML = '<div class="empty">등록된 예약이 없어요.</div>'; return; }
+    var html = '', cur = '';
+    items.forEach(function(x){
+      var b = x.b;
+      if(b.date!==cur){ cur = b.date; var d = parse(b.date); html += '<div class="rday">'+md(d)+' ('+DOW[d.getDay()]+')'+(b.date===now?'<small>오늘</small>':'')+'</div>'; }
+      html += '<div class="ritem'+(b.date<now?' past':'')+'"><span class="t">'+b.time+' ~ '+endTime(b)+'</span><span><b>'+esc(b.who)+'</b> · '+esc(b.purpose||'')+'</span></div>';
+    });
+    el.innerHTML = html;
+  }
+
+  function load(){
+    return fetch('data/meetingroom.json?v='+Date.now(), {cache:'no-store'}).then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; }).then(function(arr){
+      bookings = arr; render();
+    });
+  }
+
+  // ---------- 이동/편집 (관리자) ----------
+  function slotOptions(sel){
+    var o=''; for(var h=START_H; h<END_H; h++){ o += '<option value="'+pad(h)+':00"'+(sel===pad(h)+':00'?' selected':'')+'>'+pad(h)+':00</option>'; } return o;
+  }
+  function durOptions(sel){
+    var o=''; for(var d=1; d<=6; d++){ o += '<option value="'+d+'"'+(d===sel?' selected':'')+'>'+d+'시간</option>'; } return o;
+  }
+  function openForm(b, isNew, defDate, defHour){
+    var cur = b || {date:defDate||ds(new Date()), time:pad(defHour||START_H)+':00', dur:1, who:'', purpose:''};
+    var m = PDAdmin.openModal('<h3>'+(isNew?'예약 추가':'예약 수정')+'</h3>'
+      + '<label>날짜 (평일)<input type="date" id="rDate" value="'+cur.date+'"></label>'
+      + '<label>시작 시간<select id="rTime">'+slotOptions(cur.time)+'</select></label>'
+      + '<label>사용 시간<select id="rDur">'+durOptions(cur.dur||1)+'</select></label>'
+      + '<label>이름<input type="text" id="rWho" value="'+esc(cur.who)+'" placeholder="예: 허준호"></label>'
+      + '<label>목적<input type="text" id="rPur" value="'+esc(cur.purpose)+'" placeholder="예: 미팅, 상담"></label>'
+      + '<div class="err" id="rErr" style="display:none"></div>'
+      + '<div class="btns">'+(isNew?'':'<button type="button" id="rDel" style="color:var(--bad)">삭제</button>')+'<button type="button" id="rCancel">취소</button><button type="button" class="pri" id="rOk">'+(isNew?'추가':'적용')+'</button></div>');
+    var err = m.querySelector('#rErr');
+    var fail = function(t){ err.textContent = t; err.style.display='block'; };
+    m.querySelector('#rCancel').addEventListener('click', PDAdmin.closeModal);
+    var del = m.querySelector('#rDel');
+    if(del) del.addEventListener('click', function(){
+      if(!confirm('이 예약을 삭제할까요?')) return;
+      bookings.splice(bookings.indexOf(b),1);
+      PDAdmin.log('삭제: '+b.date+' '+b.time+' '+b.who, ['room']); PDAdmin.closeModal(); render();
+    });
+    m.querySelector('#rOk').addEventListener('click', function(){
+      var date = m.querySelector('#rDate').value, time = m.querySelector('#rTime').value, dur = parseInt(m.querySelector('#rDur').value,10);
+      var who = m.querySelector('#rWho').value.trim(), pur = m.querySelector('#rPur').value.trim();
+      if(!date || !who) return fail('날짜와 이름을 입력해 주세요.');
+      if(!isWeekday(date)) return fail('평일만 예약할 수 있어요.');
+      var h = hourOf(time);
+      if(h + dur > END_H) return fail('운영 시간('+pad(END_H)+':00)을 넘어가요.');
+      var ov = overlap(date, h, dur, isNew?null:b);
+      if(ov) return fail('이미 예약이 있어요: '+ov.time+' '+ov.who+' · '+ov.purpose);
+      if(isNew){ bookings.push({date:date, time:time, dur:dur, who:who, purpose:pur}); PDAdmin.log('추가: '+date+' '+time+' '+who, ['room']); }
+      else { b.date=date; b.time=time; b.dur=dur; b.who=who; b.purpose=pur; PDAdmin.log('수정: '+date+' '+time+' '+who, ['room']); }
+      weekStart = mondayOf(parse(date));
+      PDAdmin.closeModal(); render();
+    });
+  }
+  function moveTo(b, date, h){
+    if(!isWeekday(date)){ PDAdmin.toast('평일만 예약할 수 있어요'); return; }
+    var dur = b.dur||1;
+    if(h + dur > END_H){ PDAdmin.toast('운영 시간을 넘어가요'); return; }
+    var ov = overlap(date, h, dur, b);
+    if(ov){ PDAdmin.toast('이미 예약이 있는 시간이에요'); return; }
+    if(b.date===date && hourOf(b.time)===h) return;
+    var old = b.date+' '+b.time;
+    b.date = date; b.time = pad(h)+':00';
+    PDAdmin.log('이동: '+b.who+' '+old+' → '+date+' '+b.time, ['room']);
+    render();
+  }
+
+  PDAdmin.init({
+    btn: document.getElementById('admBtn'),
+    cats: {},
+    getPds: function(){ return []; },
+    onEnter: function(){ return PDAdmin.fetchFile('data/meetingroom.json', 'room').then(function(arr){ bookings = arr; moving = null; }); },
+    onExit: function(){ moving = null; load(); },
+    rerender: render,
+    getFiles: function(){ return [{key:'room', path:'data/meetingroom.json', text:PDAdmin.serialize(bookings)}]; }
+  });
+
+  document.getElementById('grid').addEventListener('click', function(ev){
+    if(!admin.on) return;
+    var bk = ev.target.closest('.rbook');
+    if(bk){ if(moving){ return; } openForm(bookings[parseInt(bk.getAttribute('data-i'),10)], false); return; }
+    var c = ev.target.closest('.rcell'); if(!c) return;
+    if(moving){ var mb = moving; moving = null; moveTo(mb, c.getAttribute('data-date'), parseInt(c.getAttribute('data-h'),10)); return; }
+    openForm(null, true, c.getAttribute('data-date'), parseInt(c.getAttribute('data-h'),10));
+  });
+  document.addEventListener('dragstart', function(ev){
+    if(!admin.on) return;
+    var bk = ev.target.closest && ev.target.closest('.rbook'); if(!bk) return;
+    ev.dataTransfer.setData('text/plain', bk.getAttribute('data-i')); ev.dataTransfer.effectAllowed = 'move';
+  });
+  document.addEventListener('dragover', function(ev){
+    if(!admin.on) return;
+    var c = ev.target.closest && ev.target.closest('.rcell'); if(c){ ev.preventDefault(); }
+  });
+  document.addEventListener('drop', function(ev){
+    if(!admin.on) return;
+    var c = ev.target.closest && ev.target.closest('.rcell'); if(!c) return;
+    ev.preventDefault();
+    var i = parseInt(ev.dataTransfer.getData('text/plain'),10); if(isNaN(i) || !bookings[i]) return;
+    moveTo(bookings[i], c.getAttribute('data-date'), parseInt(c.getAttribute('data-h'),10));
+  });
+
+  document.getElementById('prevW').addEventListener('click', function(){ weekStart = addDays(weekStart,-7); render(); });
+  document.getElementById('nextW').addEventListener('click', function(){ weekStart = addDays(weekStart,7); render(); });
+  document.getElementById('todayW').addEventListener('click', function(){ weekStart = mondayOf(new Date()); render(); });
+
+  // 주말에 열면 다음 주 월요일을 보여줌
+  var now = new Date(); var wd = now.getDay();
+  weekStart = mondayOf(wd===0 ? addDays(now,1) : (wd===6 ? addDays(now,2) : now));
+  load();
+  setInterval(function(){ if(!admin.on) load(); }, 60000);
+})();
+</script>
+
+</body>
+</html>
