@@ -103,6 +103,7 @@
     ginger:{label:'진저브레드 글로벌1기', hue:55},
     bensamama:{label:'벤사마마 글로벌1기', hue:340},
     freelecture:{label:'무료특강', hue:180},
+    offlinekr:{label:'오프라인 특강(한국 졸업생)', hue:175},
     sunolyric:{label:'수노 작사 법칙', hue:100},
     aiartist:{label:'AI 아티스트', hue:25},
     mentor:{label:'GP1 한국 멘토', hue:250},
@@ -111,7 +112,7 @@
   };
   // 한중일 동시진행(신푸른솔이 늘 통역으로 들어가는) 수업만 — 중국1기·일본5기·TSM처럼 그 나라 학생만 모아 그 나라 통역자가
   // 알아서 진행하는 단일언어 수업은 이 탭에서 제외해요(통역자가 있어도 동시진행이 아니므로 넣지 않음).
-  var SINGLE_LANG_CATS = {china:1, japan:1, tsm:1, toplinefree:1, mentor:1};
+  var SINGLE_LANG_CATS = {china:1, japan:1, tsm:1, toplinefree:1, mentor:1, offlinekr:1};
   var ALWAYS_INTERP_CATS = {global1:1, globalcareer:1, trackdesign:1, jordan:1, hitmakers:1, ginger:1, bensamama:1, hitsoundlaw:1};
   // 카테고리가 freelecture 등으로 따로 잡혀도 이 프로그램들의 무료특강/부속 행사는 늘 한중일 수업이에요.
   var ALWAYS_INTERP_TITLE_RE = /히트메이커스|트랙디자인/;
@@ -123,7 +124,11 @@
     return Object.keys(x.people).some(function(p){ return x.people[p]==='int'; });
   }
   // 레노(한국15기+일본5기 합동)는 한중일 동시진행은 아니지만 통역·검수 배정은 추적해요.
-  function needsTracking(x){ return isAlwaysInterp(x) || /LENNO|레노/.test(x.title); }
+  // 중국1기·일본5기·TSM·한국 전용 오프라인 특강처럼 그 나라만 듣는 수업은 애초에 통역·검수 추적 대상이 아니에요.
+  function needsTracking(x){
+    if(SINGLE_LANG_CATS[x.category]) return false;
+    return isAlwaysInterp(x) || /LENNO|레노/.test(x.title);
+  }
   // 레노는 각국 통역자가 곧 원어민이라 따로 검수자가 필요 없어요(통역만 추적).
   var NO_REVIEW_RE = /LENNO|레노/;
   function needsReview(x){ return needsTracking(x) && !NO_REVIEW_RE.test(x.title); }
