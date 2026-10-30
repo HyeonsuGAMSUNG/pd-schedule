@@ -109,7 +109,8 @@
     aiartist:{label:'AI 아티스트', hue:25},
     mentor:{label:'GP1 한국 멘토', hue:250},
     dinner:{label:'치킨 모임', hue:20},
-    hitsoundlaw:{label:'글로벌 히트곡 사운드의 법칙', hue:5}
+    hitsoundlaw:{label:'글로벌 히트곡 사운드의 법칙', hue:5},
+    mentor15:{label:'15기 멘토특강', hue:120}
   };
   // 한중일 동시진행(신푸른솔이 늘 통역으로 들어가는) 수업만 — 중국1기·일본5기·TSM처럼 그 나라 학생만 모아 그 나라 통역자가
   // 알아서 진행하는 단일언어 수업은 이 탭에서 제외해요(통역자가 있어도 동시진행이 아니므로 넣지 않음).
@@ -167,7 +168,7 @@
   var DOW = ['일','월','화','수','목','금','토'];
   var WINDOW_MIN = 180;
   var PD_HUE = {michingamsung:270, naseongjun:48, heojunho:215, kimseonhwi:0};
-  var SHORT = {michingamsung:'미친', heojunho:'준호', sinpureunsol:'푸른', naseongjun:'성준', kimseonhwi:'선휘', syunta:'슌타', satsuki:'사츠', honomi:'호노', ohani:'오하', kimdohyeon:'도현', seosanghwan:'상환', choiseongryung:'성륭', jordanshow:'조던', charlottewilson:'샬롯', lenno:'레노'};
+  var SHORT = {michingamsung:'미친', heojunho:'준호', sinpureunsol:'푸른', naseongjun:'성준', kimseonhwi:'선휘', syunta:'슌타', satsuki:'사츠', honomi:'호노', ohani:'오하', kimdohyeon:'도현', seosanghwan:'상환', choiseongryung:'성륭', jordanshow:'조던', charlottewilson:'샬롯', lenno:'레노', younggwang:'영광', hongseokchan:'석찬', sarah:'Sarah', toplinersong:'송세션', kimyoungbin:'영빈', choihagyeom:'하겸', kimyuchan:'유찬'};
   // 해외 게스트 강의자: 항상 맨 위, 눈에 띄는 금색 배지로 표시
   var GUEST_IDS = {jordanshow:1, charlottewilson:1};
   function shortName(id){ return SHORT[id] || (pdName[id]||id).slice(0,2); }

@@ -73,5 +73,40 @@
     "id": "choiseongryung",
     "name": "최성륭",
     "desc": "중국 1기 검수·글로벌 커리어 통역"
+  },
+  {
+    "id": "younggwang",
+    "name": "영광의얼굴들",
+    "desc": "한국 15기 34주차 · 일본 5기 38주차 강의"
+  },
+  {
+    "id": "hongseokchan",
+    "name": "홍석찬",
+    "desc": "한국 15기 37주차 · 신스 고급반(미정) · 일본 5기 37주차"
+  },
+  {
+    "id": "sarah",
+    "name": "Sarah",
+    "desc": "한국 15기 연장반 강의"
+  },
+  {
+    "id": "toplinersong",
+    "name": "해외 탑라이너 송세션",
+    "desc": "한국 15기 39·41·43주차 (강의자 미정)"
+  },
+  {
+    "id": "kimyoungbin",
+    "name": "김영빈 PD",
+    "desc": "15기 멘토특강 (금 21:00)"
+  },
+  {
+    "id": "choihagyeom",
+    "name": "최하겸 PD",
+    "desc": "15기 멘토특강 (목 21:00)"
+  },
+  {
+    "id": "kimyuchan",
+    "name": "김유찬 PD",
+    "desc": "15기 멘토특강 (일요일)"
   }
 ]
