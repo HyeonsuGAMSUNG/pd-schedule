@@ -59,6 +59,12 @@ var pdsData = [], newFiles = [];
 var adminOn = function(){ return !!(window.PDAdmin && PDAdmin.isOn()); };
 function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
+var PD_GROUPS = [
+  {label:'PD', ids:['michingamsung','heojunho','naseongjun','kimseonhwi','kimdohyeon','seosanghwan']},
+  {label:'강의자', ids:['jordanshow','charlottewilson','lenno','younggwang','hongseokchan','sarah','kimyoungbin','choihagyeom','kimyuchan']},
+  {label:'통역자', ids:['sinpureunsol','syunta','satsuki','honomi','ohani','choiseongryung']},
+  {label:'세션', ids:['toplinersong']}
+];
 function renderPds(){
   var list = document.getElementById('pdList');
   var on = adminOn();
@@ -66,7 +72,7 @@ function renderPds(){
     list.innerHTML = '<div class="empty">등록된 PD가 아직 없어요.</div>' + (on ? '<button type="button" class="adm-add" id="addPd">+ PD 추가</button>' : '');
     return;
   }
-  list.innerHTML = pdsData.map(function(pd, i){
+  function cardHtml(pd, i){
     var card = '<a class="pd-card" href="schedule.html?pd='+encodeURIComponent(pd.id)+'">'
       + '<span><span class="name">'+esc(pd.name)+'</span><div class="desc">'+esc(pd.desc||'')+'</div></span>'
       + '<span class="arrow">›</span></a>';
@@ -75,7 +81,22 @@ function renderPds(){
       + '<div class="adm-row" style="padding-left:4px"><button type="button" data-act="edit">이름·설명 수정</button>'
       + '<button type="button" data-act="up">▲</button><button type="button" data-act="down">▼</button>'
       + '<button type="button" data-act="del" class="danger">삭제</button></div></div>';
-  }).join('') + (on ? '<button type="button" class="adm-add" id="addPd">+ PD 추가</button>' : '');
+  }
+  var used = {};
+  var html = PD_GROUPS.map(function(g){
+    var items = [];
+    g.ids.forEach(function(id){
+      var i = pdsData.findIndex(function(p){ return p.id===id; });
+      if(i<0) return;
+      used[id] = 1;
+      items.push(cardHtml(pdsData[i], i));
+    });
+    if(!items.length) return '';
+    return '<div class="section-title"><h2>'+esc(g.label)+'</h2></div>'+items.join('');
+  }).join('');
+  var rest = pdsData.map(function(p, i){ return used[p.id] ? '' : cardHtml(p, i); }).filter(Boolean);
+  if(rest.length) html += '<div class="section-title"><h2>기타</h2></div>'+rest.join('');
+  list.innerHTML = html + (on ? '<button type="button" class="adm-add" id="addPd">+ PD 추가</button>' : '');
 }
 function loadPds(){
   if(adminOn()) return Promise.resolve();
