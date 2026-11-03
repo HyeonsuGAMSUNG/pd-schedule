@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>클래스 D-day</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800;900&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="style.css?v=20261015b">
+<style>
+.dbar{display:flex;gap:6px;flex-wrap:wrap;margin-top:14px}
+.dbar button{font:inherit;font-size:.8rem;font-weight:800;border:1px solid var(--border);background:var(--chip-bg);color:var(--fg);border-radius:999px;padding:6px 13px;cursor:pointer}
+.dbar button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.dgrp{margin-top:22px}
+.dgrp h2{font-size:1.05rem;font-weight:900;display:flex;align-items:baseline;gap:8px}
+.dgrp h2 small{font-size:.74rem;font-weight:600;color:var(--muted-2)}
+.drow{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:11px 13px;margin-top:8px}
+.drow .dn{flex:none;min-width:62px;text-align:center;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:1rem;border-radius:9px;padding:6px 4px;background:var(--chip-bg);border:1px solid var(--border);font-variant-numeric:tabular-nums}
+.drow .dn.hot{background:var(--bad-bg);border-color:var(--bad);color:var(--bad)}
+.drow .dn.warm{border-color:var(--accent);color:var(--accent)}
+.drow .bd{min-width:0;flex:1}
+.drow .tt{font-weight:700;font-size:.93rem;line-height:1.35;overflow-wrap:anywhere}
+.drow .tt a{color:inherit;text-decoration:none}
+.drow .tt a:hover{text-decoration:underline}
+.drow .meta{margin-top:4px;font-size:.8rem;color:var(--muted);display:flex;gap:6px 10px;flex-wrap:wrap}
+.drow .meta .c{font-weight:800;color:var(--fg)}
+.drow .nx{margin-top:5px;font-size:.76rem;color:var(--accent);font-weight:700}
+.drow .nx.today{color:var(--bad)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="backlink" href="index.html">‹ 목록</a>
+    <div class="brand">
+      <h1>클래스 D-day</h1>
+      <span class="tag-rec">D-DAY</span>
+    </div>
+    <div class="sub" id="note">불러오는 중…</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="dbar" id="bar"></div>
+  <div id="host" class="empty">불러오는 중…</div>
+
+  <footer>
+    출발(첫 수업·OT)이나 모집 마감이 아직 안 지난 클래스만 보여줘요. D-n은 열 때마다 오늘(한국 시간) 기준으로 다시 계산해요. 날짜는 한·일·중·영 홈페이지와 HS 업무 보고 사이트 홍보 일정에서 모은 거예요(아침 마감 브리핑과 같은 데이터). 공지 기준: 마감 D-7·D-3·D-1·D-day, 할인 마감 D-3·D-1·D-day.
+  </footer>
+</div>
+
+<script>
+function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+var WD = '일월화수목금토';
+var COUNTRIES = ['한국','일본','중국','영어권'];
+// 사이트 표기와 실제 강의명이 다른 것 (바뀌면 여기만 고치면 돼요)
+var ALIAS = {'히트메이커스 2 오프라인 무료특강':'선택받는 곡의 비밀 (히트메이커스 2 오프라인 무료특강)'};
+var MILE = {7:'D-7',3:'D-3',1:'D-1',0:'D-day'}, MILE_DC = {3:'D-3',1:'D-1',0:'D-day'};
+var DATA = null, cur = '전체';
+
+function kstToday(){
+  var p = new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  return new Date(p + 'T00:00:00Z');
+}
+function day(s){ return new Date(s + 'T00:00:00Z'); }
+function md(d){ return (d.getUTCMonth()+1) + '/' + d.getUTCDate() + '(' + WD[d.getUTCDay()] + ')'; }
+function diff(a, b){ return Math.round((a - b) / 864e5); }
+function dLabel(n){ return n === 0 ? 'D-day' : 'D-' + n; }
+function nextNotice(it, n){
+  var m = it.kind === '할인 마감' ? MILE_DC : MILE;
+  var ks = Object.keys(m).map(Number).filter(function(k){ return k <= n; }).sort(function(a,b){ return b-a; });
+  if(!ks.length) return null;
+  var k = ks[0], when = new Date(day(it.date) - k*864e5);
+  return {today: k === n, text: (k === n ? '오늘 공지 ' : '다음 공지 ' + md(when) + ' ') + m[k]};
+}
+function render(){
+  var today = kstToday();
+  var items = DATA.items.map(function(it){ return Object.assign({n: diff(day(it.date), today)}, it); })
+    .filter(function(it){ return it.n >= 0 && (cur === '전체' || it.country === cur); })
+    .sort(function(a,b){ return a.n - b.n || COUNTRIES.indexOf(a.country) - COUNTRIES.indexOf(b.country); });
+  var groups = [['이번 주 (D-7 이내)', 0, 7], ['2주 안 (D-8~14)', 8, 14], ['한 달 안 (D-15~31)', 15, 31], ['그 뒤', 32, 1e9]];
+  var html = groups.map(function(g){
+    var list = items.filter(function(it){ return it.n >= g[1] && it.n <= g[2]; });
+    if(!list.length) return '';
+    return '<div class="dgrp"><h2>' + esc(g[0]) + '<small>' + list.length + '개</small></h2>' + list.map(function(it){
+      var nx = nextNotice(it, it.n), label = ALIAS[it.label] || it.label;
+      var cls = it.n <= 3 ? ' hot' : it.n <= 7 ? ' warm' : '';
+      return '<div class="drow"><div class="dn' + cls + '">' + dLabel(it.n) + '</div><div class="bd">' +
+        '<div class="tt">' + (it.url ? '<a href="' + esc(it.url) + '" target="_blank" rel="noopener">' + esc(label) + '</a>' : esc(label)) + '</div>' +
+        '<div class="meta"><span class="c">' + esc(it.country) + '</span><span>' + esc(it.kind) + ' ' + md(day(it.date)) + '</span><span>' + esc(it.src) + '</span></div>' +
+        (nx ? '<div class="nx' + (nx.today ? ' today' : '') + '">' + esc(nx.text) + '</div>' : '') +
+        '</div></div>';
+    }).join('') + '</div>';
+  }).join('');
+  document.getElementById('host').outerHTML = '<div id="host">' + (html || '<p class="empty">남은 일정이 없어요.</p>') + '</div>';
+}
+function renderBar(){
+  document.getElementById('bar').innerHTML = ['전체'].concat(COUNTRIES).map(function(c){
+    return '<button type="button" data-c="' + esc(c) + '"' + (c === cur ? ' class="on"' : '') + '>' + esc(c) + '</button>';
+  }).join('');
+}
+document.getElementById('bar').addEventListener('click', function(e){
+  var b = e.target.closest('button'); if(!b) return;
+  cur = b.getAttribute('data-c'); renderBar(); render();
+});
+
+fetch('data/dday.json?v=' + Date.now(), {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(data){
+  DATA = data;
+  var t = kstToday(), f = data.siteFetchedAt ? data.siteFetchedAt.replace('T', ' ').slice(5) : '';
+  document.getElementById('note').textContent = '오늘 ' + md(t) + ' 기준 · 날짜 수집 ' + f.replace('-', '/');
+  renderBar(); render();
+}).catch(function(){
+  document.getElementById('note').textContent = '불러오기 실패';
+  document.getElementById('host').textContent = '데이터를 불러오지 못했어요.';
+});
+</script>
+
+</body>
+</html>
