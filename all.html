@@ -158,10 +158,11 @@
     return isInterpClass(x);
   }
   // 한국 전용: 중국·일본 학생과 무관하게 한국에서만 진행하는 수업(초급·AI 아티스트·장르특강·수노·GP1 한국 멘토·오프라인 특강 등).
-  // 한중일 동시진행 수업이나 중국/일본 전용 수업(LENNO 포함)은 제외해요.
+  // 한중일 동시진행 수업이나 중국/일본 전용 수업은 제외하되, 레노(LENNO)는 한국 15기 수업이라 포함해요.
   function isKoreaOnlyClass(x){
+    if(/LENNO|레노/.test(x.title)) return true;
     if(x.category==='china' || x.category==='japan' || x.category==='tsm' || x.category==='toplinefree') return false;
-    if(/일본|중국|LENNO|레노/.test(x.title)) return false;
+    if(/일본|중국/.test(x.title)) return false;
     if(isInterpClass(x)) return false;
     return true;
   }
