@@ -62,6 +62,7 @@
     <button type="button" class="vtab" data-view="japan">🇯🇵 일본 전용</button>
     <button type="button" class="vtab" data-view="korea">🇰🇷 한국 수업</button>
     <button type="button" class="vtab" data-view="missing">📋 검수·통역 미배정</button>
+    <button type="button" class="vtab" data-view="ginger">🍪 진저브레드 전체</button>
   </div>
   <div class="filters" id="filters"></div>
   <div id="conflictArea"></div>
@@ -147,7 +148,7 @@
   // 제목에 "~미정"이 남아있으면(예: "중국 검수 미정") 통역/검수가 있어도 아직 다 끝난 게 아니에요.
   function isMissingAssignment(x){ return !!x.blocks && needsTracking(x) && (!hasInt(x) || (needsReview(x) && !hasRev(x)) || /미정/.test(x.title)); }
   function missingInterpNote(x){
-    if((!interpMode && !japanMode && !missingMode) || !x.blocks || !needsTracking(x)) return '';
+    if((!interpMode && !japanMode && !missingMode && !gingerMode) || !x.blocks || !needsTracking(x)) return '';
     return (hasInt(x) ? '' : '<div class="cnote interp">⚠ 아직 통역자가 배정 안 됐어요</div>')
       + (needsReview(x) && !hasRev(x) ? '<div class="cnote interp">⚠ 아직 원어민 검수자가 배정 안 됐어요</div>' : '');
   }
@@ -155,6 +156,9 @@
   var japanMode = /(^|[?&])view=japan(&|$)/.test(location.search);
   var koreaMode = /(^|[?&])view=korea(&|$)/.test(location.search);
   var missingMode = /(^|[?&])view=missing(&|$)/.test(location.search);
+  var gingerMode = /(^|[?&])view=ginger(&|$)/.test(location.search);
+  // 진저브레드 전체: 글로벌1기 안의 진저브레드 주차(ginger) + 포스트세션(gingerpost) 둘 다 모아보기
+  function isGingerClass(x){ return x.category==='ginger' || x.category==='gingerpost'; }
   // 일본 전용: 일본 학생이 듣는 수업(일본 5기·TSM·일본 초급 5기·레노 합동) + 한중일 동시진행 수업
   function isJapanClass(x){
     if(x.category==='japan' || x.category==='tsm') return true;
@@ -288,11 +292,14 @@
     conflictByDateJapan = indexOne(japanConflicts);
     koreaConflicts = conflicts.filter(function(c){ return isKoreaOnlyClass(c.a) && isKoreaOnlyClass(c.b); });
     conflictByDateKorea = indexOne(koreaConflicts);
+    gingerConflicts = conflicts.filter(function(c){ return isGingerClass(c.a) && isGingerClass(c.b); });
+    conflictByDateGinger = indexOne(gingerConflicts);
   }
   var japanConflicts = [], conflictByDateJapan = {};
   var koreaConflicts = [], conflictByDateKorea = {};
-  function curConflicts(){ return japanMode ? japanConflicts : (koreaMode ? koreaConflicts : (interpMode ? interpConflicts : conflicts)); }
-  function curConflictByDate(){ return japanMode ? conflictByDateJapan : (koreaMode ? conflictByDateKorea : (interpMode ? conflictByDateInterp : conflictByDate)); }
+  var gingerConflicts = [], conflictByDateGinger = {};
+  function curConflicts(){ return japanMode ? japanConflicts : (koreaMode ? koreaConflicts : (interpMode ? interpConflicts : (gingerMode ? gingerConflicts : conflicts))); }
+  function curConflictByDate(){ return japanMode ? conflictByDateJapan : (koreaMode ? conflictByDateKorea : (interpMode ? conflictByDateInterp : (gingerMode ? conflictByDateGinger : conflictByDate))); }
 
   // ---------- filtering ----------
   function visibleEvents(){
@@ -301,6 +308,7 @@
     else if(koreaMode) list = list.filter(isKoreaOnlyClass);
     else if(interpMode) list = list.filter(isInterpClass);
     else if(missingMode) list = list.filter(isMissingAssignment);
+    else if(gingerMode) list = list.filter(isGingerClass);
     var anyOn = PD_IDS.some(function(id){ return active[id]; });
     if(!anyOn) return list;
     return list.filter(function(x){
@@ -370,9 +378,14 @@
 
   function renderViewMode(){
     document.querySelectorAll('.vtab').forEach(function(b){
-      b.classList.toggle('on', b.getAttribute('data-view')===(japanMode?'japan':(koreaMode?'korea':(interpMode?'interp':(missingMode?'missing':'all')))));
+      b.classList.toggle('on', b.getAttribute('data-view')===(japanMode?'japan':(koreaMode?'korea':(interpMode?'interp':(missingMode?'missing':(gingerMode?'ginger':'all'))))));
     });
-    if(missingMode){
+    if(gingerMode){
+      document.getElementById('pageTitle').textContent = '진저브레드 전체 스케쥴';
+      document.getElementById('pageTag').textContent = 'GB';
+      document.getElementById('listTitle').textContent = '진저브레드 관련 일정 전체';
+      document.getElementById('pageFooter').textContent = '진저브레드(Gingerbread) 관련 수업을 전부 모았어요 — 글로벌 1기 안의 진저브레드 담당 주차([진저 N], 매 6주 화요일) + GINGERBREAD : POST SESSION 포스트프로덕션 단기심화반(12/10·11) 둘 다 포함해요.';
+    } else if(missingMode){
       document.getElementById('pageTitle').textContent = '검수·통역 미배정';
       document.getElementById('pageTag').textContent = 'TODO';
       document.getElementById('listTitle').textContent = '배정 필요한 일정';
@@ -564,10 +577,10 @@
   document.getElementById('viewTabs').addEventListener('click', function(ev){
     var b = ev.target.closest('.vtab'); if(!b) return;
     var v = b.getAttribute('data-view');
-    interpMode = (v==='interp'); japanMode = (v==='japan'); koreaMode = (v==='korea'); missingMode = (v==='missing');
+    interpMode = (v==='interp'); japanMode = (v==='japan'); koreaMode = (v==='korea'); missingMode = (v==='missing'); gingerMode = (v==='ginger');
     selectedDate = null; curYm = null;
     var url = new URL(location.href);
-    if(japanMode) url.searchParams.set('view','japan'); else if(koreaMode) url.searchParams.set('view','korea'); else if(interpMode) url.searchParams.set('view','interp'); else if(missingMode) url.searchParams.set('view','missing'); else url.searchParams.delete('view');
+    if(japanMode) url.searchParams.set('view','japan'); else if(koreaMode) url.searchParams.set('view','korea'); else if(interpMode) url.searchParams.set('view','interp'); else if(missingMode) url.searchParams.set('view','missing'); else if(gingerMode) url.searchParams.set('view','ginger'); else url.searchParams.delete('view');
     history.replaceState(null, '', url.pathname + (url.search ? url.search : ''));
     if(merged.length){
       var vis = visibleEvents();
