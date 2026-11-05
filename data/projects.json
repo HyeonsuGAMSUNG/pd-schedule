@@ -1,7 +1,15 @@
 {
- "syncedAt": "2026-11-04T09:00:00+09:00",
+ "syncedAt": "2026-11-05T09:00:00+09:00",
  "open_soon": [],
  "planning": [
+  {
+   "name": "조던쇼 샬롯 유학반",
+   "status": "시작 전",
+   "lecturer": "조던쇼 · 샬롯",
+   "date": "1/19·1/21·1/23 세션 (본문 기준)",
+   "warn": "노션 날짜 속성 비어 있음 — 본문 일정만 있음",
+   "url": "https://app.notion.com/400db3fde2ad8053be03e9ce02557ce1"
+  },
   {
    "name": "해외 → 한국 입시반",
    "status": "시작 전",
