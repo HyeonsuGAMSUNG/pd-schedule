@@ -1,6 +1,6 @@
 {
-  "syncedAt": "2026-10-30T14:34:12+09:00",
-  "status": "syncing",
-  "startedAt": "2026-11-05T18:25:16+09:00",
-  "expectedDoneAt": "2026-11-05T18:31:16+09:00"
+  "syncedAt": "2026-11-05T18:27:38+09:00",
+  "status": "idle",
+  "startedAt": null,
+  "expectedDoneAt": null
 }
