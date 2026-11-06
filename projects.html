@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>오픈예정·기획중 강의</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800;900&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="style.css?v=20261015b">
+<style>
+.pjgrp{margin-top:22px}
+.pjgrp h2{font-size:1.05rem;font-weight:900;display:flex;align-items:baseline;gap:8px}
+.pjgrp h2 small{font-size:.74rem;font-weight:600;color:var(--muted-2)}
+.pjcard{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-top:8px}
+.pjcard .tt{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.pjcard .tt b{font-size:.95rem}
+.pjcard .st{font-size:.72rem;font-weight:800;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 8px;white-space:nowrap}
+.pjcard .meta{margin-top:6px;font-size:.84rem;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.pjcard .meta span{white-space:nowrap}
+.pjcard .warn{margin-top:6px;font-size:.78rem;color:var(--bad)}
+.pjcard a.open{display:inline-block;margin-top:8px;font-size:.78rem;font-weight:700;color:var(--accent);text-decoration:none}
+.pjnote{font-size:.78rem;color:var(--muted-2);margin-top:14px}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="backlink" href="index.html">‹ 목록</a>
+    <div class="brand">
+      <h1>오픈예정·기획중 강의</h1>
+      <span class="tag-rec">PLAN</span>
+    </div>
+    <div class="sub" id="note">불러오는 중…</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="pjnote">노션 "🎬 프로젝트" DB에 올라온 신규 강의 기획 중, 아직 전체 스케쥴·HS 스케쥴 사이트에는 반영되지 않은 것만 모아봐요. 여기 있는 건 전부 <b>기획 단계</b>일 뿐 확정이 아니에요 — 실제로 확정되면 노션/스케쥴표에 직접 반영해 주세요.</div>
+  <div id="host" class="empty">불러오는 중…</div>
+
+  <footer>
+    노션 프로젝트 DB를 매일 아침 9시 자동으로 체크해서 갱신해요(읽기 전용, 노션에는 아무것도 쓰지 않아요). 날짜·강의자가 비어 있으면 아직 노션에도 안 채워진 거예요.
+  </footer>
+</div>
+
+<script>
+function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtSynced(iso){
+  var d = new Date(iso);
+  if (isNaN(d)) return '';
+  var parts = new Intl.DateTimeFormat('en-GB', {timeZone:'Asia/Seoul', month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit', hourCycle:'h23'}).formatToParts(d);
+  var o = {}; parts.forEach(function(p){ o[p.type] = p.value; });
+  return o.month + '/' + o.day + ' ' + o.hour + ':' + o.minute;
+}
+function cardHtml(item){
+  var bits = [];
+  if(item.lecturer) bits.push('<span>강의자 ' + esc(item.lecturer) + '</span>');
+  if(item.date) bits.push('<span>' + esc(item.date) + '</span>');
+  if(item.status) bits.push('<span>' + esc(item.status) + '</span>');
+  return '<div class="pjcard"><div class="tt"><b>' + esc(item.name) + '</b>' +
+    (item.badge ? '<span class="st">' + esc(item.badge) + '</span>' : '') + '</div>' +
+    (bits.length ? '<div class="meta">' + bits.join('') + '</div>' : '') +
+    (item.warn ? '<div class="warn">⚠ ' + esc(item.warn) + '</div>' : '') +
+    (item.url ? '<a class="open" href="' + esc(item.url) + '" target="_blank" rel="noopener">노션에서 열기 ›</a>' : '') +
+    '</div>';
+}
+fetch('data/projects.json?v=' + Date.now(), {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(data){
+  document.getElementById('note').textContent = data.syncedAt ? ('마지막 확인 ' + fmtSynced(data.syncedAt) + ' (노션 자동 체크)') : '아직 확인된 데이터가 없어요';
+  var openSoon = data.open_soon || [], planning = data.planning || [];
+  var html = '';
+  html += '<div class="pjgrp"><h2>🟢 오픈예정강의<small>' + openSoon.length + '개</small></h2>' +
+    (openSoon.length ? openSoon.map(cardHtml).join('') : '<div class="empty">아직 오픈 예정으로 확인된 건 없어요.</div>') + '</div>';
+  html += '<div class="pjgrp"><h2>🧩 기획중인 강의<small>' + planning.length + '개</small></h2>' +
+    (planning.length ? planning.map(cardHtml).join('') : '<div class="empty">기획 중인 건 없어요.</div>') + '</div>';
+  document.getElementById('host').outerHTML = '<div id="host">' + html + '</div>';
+}).catch(function(){
+  document.getElementById('note').textContent = '불러오기 실패';
+  document.getElementById('host').textContent = '데이터를 불러오지 못했어요.';
+});
+</script>
+
+</body>
+</html>
