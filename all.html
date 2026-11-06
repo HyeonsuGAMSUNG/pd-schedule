@@ -112,7 +112,7 @@
     dinner:{label:'치킨 모임', hue:20},
     hitsoundlaw:{label:'글로벌 히트곡 사운드의 법칙', hue:5},
     mentor15:{label:'15기 멘토특강', hue:120},
-    gingerpost:{label:'진저브레드 포스트세션', hue:45}
+    gingerpost:{label:'진저브레드 포스트프로덕션', hue:45}
   };
   // 한중일 동시진행(신푸른솔이 늘 통역으로 들어가는) 수업만 — 중국1기·일본5기·TSM처럼 그 나라 학생만 모아 그 나라 통역자가
   // 알아서 진행하는 단일언어 수업은 이 탭에서 제외해요(통역자가 있어도 동시진행이 아니므로 넣지 않음).
@@ -136,7 +136,7 @@
   // 레노는 각국 통역자가 곧 원어민이라 따로 검수자가 필요 없어요(통역만 추적).
   var NO_REVIEW_RE = /LENNO|레노/;
   // 글로벌 1기(본편·진저브레드/벤사마마 게스트 주차·글로벌 커리어)는 통역자만 있으면 되고 별도 원어민 검수자는 필요 없어요
-  // (트랙디자인·조던쇼·히트메이커스·사운드의 법칙·진저브레드 포스트세션은 검수자가 따로 필요하니 그대로 추적).
+  // (트랙디자인·조던쇼·히트메이커스·사운드의 법칙·진저브레드 포스트프로덕션은 검수자가 따로 필요하니 그대로 추적).
   var NO_REVIEW_CATS = {global1:1, ginger:1, bensamama:1, globalcareer:1};
   function needsReview(x){ return needsTracking(x) && !NO_REVIEW_RE.test(x.title) && !NO_REVIEW_CATS[x.category]; }
   function hasInt(x){ return Object.keys(x.people).some(function(p){ return x.people[p]==='int'; }); }
@@ -384,7 +384,7 @@
       document.getElementById('pageTitle').textContent = '진저브레드 전체 스케쥴';
       document.getElementById('pageTag').textContent = 'GB';
       document.getElementById('listTitle').textContent = '진저브레드 관련 일정 전체';
-      document.getElementById('pageFooter').textContent = '진저브레드(Gingerbread) 관련 수업을 전부 모았어요 — 글로벌 1기 안의 진저브레드 담당 주차([진저 N], 매 6주 화요일) + GINGERBREAD : POST SESSION 포스트프로덕션 단기심화반(12/10·11) 둘 다 포함해요.';
+      document.getElementById('pageFooter').textContent = '진저브레드(Gingerbread) 관련 수업을 전부 모았어요 — 글로벌 1기 안의 진저브레드 담당 주차([진저 N], 매 6주 화요일) + GINGERBREAD : POST PRODUCTION 단기심화반(12/10·11) 둘 다 포함해요.';
     } else if(missingMode){
       document.getElementById('pageTitle').textContent = '검수·통역 미배정';
       document.getElementById('pageTag').textContent = 'TODO';
