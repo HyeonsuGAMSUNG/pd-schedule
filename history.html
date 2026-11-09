@@ -37,7 +37,7 @@
 </header>
 
 <div class="wrap">
-  <div class="hint" style="margin:0 0 14px">사이트에서 바뀐 모든 일정을 GitHub 커밋 기록 그대로 보여줘요 — 접속 IP · 언제 · 무엇을 고쳤는지가 여기 다 남아요. 관리자 모드에서 저장할 때 자동으로 기록된 IP가 (IP ...)로 표시돼요.</div>
+  <div class="hint" style="margin:0 0 14px">사이트에서 바뀐 모든 일정을 GitHub 커밋 기록 그대로 보여줘요 — 접속 IP·기기(모바일/PC, OS, 브라우저) · 언제 · 무엇을 고쳤는지가 여기 다 남아요. 다만 기기 정보는 "PC·Windows·Chrome"처럼 종류만 기록돼서, 같은 사무실에서 같은 종류의 기기를 쓰면 구분이 안 될 수 있어요.</div>
   <div id="list"></div>
   <button type="button" class="hmore" id="moreBtn" style="display:none">더 보기</button>
 </div>
@@ -59,19 +59,25 @@
   }
   function parseMsg(full){
     var first = full.split('\n')[0];
-    var ipm = first.match(/^admin:\s*([\s\S]+?)\s*\(IP\s+([^)]+)\)$/);
-    if(ipm) return {kind:'admin', ip:ipm[2], text:ipm[1]};
+    var tagm = first.match(/^admin:\s*([\s\S]+?)\s*\(([^)]*)\)$/);
+    if(tagm){
+      var inner = tagm[2];
+      var ipm = inner.match(/^IP\s+([^\s·]+)(?:\s*·\s*(.+))?$/);
+      if(ipm) return {kind:'admin', ip:ipm[1], device:ipm[2]||null, text:tagm[1]};
+      return {kind:'admin', ip:null, device:inner, text:tagm[1]};
+    }
     var m = first.match(/^admin:\s*(.+)$/);
-    if(m) return {kind:'admin', ip:null, text:m[1]};
+    if(m) return {kind:'admin', ip:null, device:null, text:m[1]};
     var m2 = first.match(/^(sync|project-sync):\s*(.+)$/);
-    if(m2) return {kind:'auto', ip:null, text:m2[2]};
-    return {kind:'other', ip:null, text:first};
+    if(m2) return {kind:'auto', ip:null, device:null, text:m2[2]};
+    return {kind:'other', ip:null, device:null, text:first};
   }
   function rowHtml(c){
     var info = parseMsg(c.commit.message);
     var dotCls = info.kind==='admin' ? 'me' : 'auto';
+    var tagText = info.ip ? ('IP '+info.ip+(info.device?' · '+info.device:'')) : (info.device || null);
     var whoHtml = info.kind==='admin'
-      ? (info.ip ? '<span class="hwho">IP '+esc(info.ip)+'</span>' : '<span class="hwho unknown">IP 미기록</span>')
+      ? (tagText ? '<span class="hwho">'+esc(tagText)+'</span>' : '<span class="hwho unknown">IP 미기록</span>')
       : (info.kind==='auto' ? '<span class="hwho unknown">자동 동기화</span>' : '<span class="hwho unknown">'+esc((c.commit.author&&c.commit.author.name)||'')+'</span>');
     return '<div class="hrow">'
       + '<div class="hdot '+dotCls+'"></div>'

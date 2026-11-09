@@ -122,7 +122,7 @@ window.PDAdmin = (function(){
   function showAuth2(blob, fromRemote){
     if(blob){
       var m = openModal('<h3>관리자 잠금 해제</h3>'
-        + '<div class="hint" style="margin-top:0">저장할 때 접속 IP가 기록(변경 이력)에 자동으로 남아요. 공용 비밀번호를 아는 다른 사람이 써도 누가 언제 뭘 고쳤는지 구분하기 위해서예요.</div>'
+        + '<div class="hint" style="margin-top:0">저장할 때 접속 IP·기기 종류(모바일/PC, OS, 브라우저)가 기록(변경 이력)에 자동으로 남아요. 공용 비밀번호를 아는 다른 사람이 써도 누가 언제 뭘 고쳤는지 구분하기 위해서예요.</div>'
         + '<label>비밀번호<input type="password" id="admPw" autocomplete="current-password"></label>'
         + '<div class="err" id="admErr" style="display:none"></div>'
         + '<div class="btns"><button type="button" id="admCancel">취소</button><button type="button" class="pri" id="admOk">열기</button></div>'
@@ -188,7 +188,14 @@ window.PDAdmin = (function(){
     }
   }
 
-  function ipTag(){ return S.ip ? ' (IP '+S.ip+')' : ''; }
+  function deviceTag(){
+    var ua = navigator.userAgent || '';
+    var mobile = /Mobile|Android|iPhone|iPad/.test(ua) ? '모바일' : 'PC';
+    var os = /Windows/.test(ua) ? 'Windows' : /Android/.test(ua) ? 'Android' : /iPhone|iPad/.test(ua) ? 'iOS' : /Mac OS X/.test(ua) ? 'Mac' : /Linux/.test(ua) ? 'Linux' : '기기미상';
+    var browser = /Edg\//.test(ua) ? 'Edge' : /Chrome\//.test(ua) ? 'Chrome' : /Firefox\//.test(ua) ? 'Firefox' : /Safari\//.test(ua) ? 'Safari' : '브라우저미상';
+    return mobile+'·'+os+'·'+browser;
+  }
+  function ipTag(){ return S.ip ? ' (IP '+S.ip+' · '+deviceTag()+')' : ' ('+deviceTag()+')'; }
   function uploadShared(blob){
     return gh('/contents/'+SHARED_PATH+'?ref='+GH.branch).then(function(r){ return r.ok ? r.json() : null; }).then(function(cur){
       return putFile(SHARED_PATH, JSON.stringify(blob)+'\n', cur ? cur.sha : null, 'admin: 모든 기기 공용 관리자 설정 올림'+ipTag());
