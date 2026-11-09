@@ -297,8 +297,9 @@ window.PDAdmin = (function(){
   var CUSTOM_CAT = '__custom__';
   function catOptions(sel){
     var C = opts.cats || {};
-    return Object.keys(C).map(function(k){ return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+esc(C[k].label)+'</option>'; }).join('')
-      + '<option value="'+CUSTOM_CAT+'"'+(sel===CUSTOM_CAT?' selected':'')+'>+ 새 카테고리 직접 입력</option>';
+    return '<option value="'+CUSTOM_CAT+'"'+(sel===CUSTOM_CAT?' selected':'')+' style="color:#ff7a1a;font-weight:bold;background:#2a1a10">✏️ 새 카테고리 직접 입력</option>'
+      + '<option disabled>──────────</option>'
+      + Object.keys(C).map(function(k){ return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+esc(C[k].label)+'</option>'; }).join('');
   }
   function catFieldHtml(idPrefix, sel){
     var C = opts.cats || {};
