@@ -243,6 +243,8 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--border);font-
 .modal .pdrow{display:flex;align-items:center;gap:8px;margin-top:6px;font-size:.85rem;font-weight:600;color:var(--fg)}
 .modal .pdrow span{flex:1}
 .modal .pdrow select{width:auto;margin:0;font-size:.82rem;padding:5px 6px}
+.modal .pdcheck-group{display:flex;flex-wrap:wrap;gap:3px 14px;margin:6px 0 14px;max-height:170px;overflow-y:auto;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:var(--bg)}
+.modal .pdcheck-group .chk{flex:0 0 auto;margin:3px 0;font-size:.82rem;font-weight:500}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:84px;z-index:50;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.82rem;font-weight:700;max-width:90vw}
 body.adm-on{padding-bottom:90px}
 

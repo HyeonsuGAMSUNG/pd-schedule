@@ -79,7 +79,7 @@
 </div>
 
 <script src="sync-status.js"></script>
-<script src="admin.js?v=3"></script>
+<script src="admin.js?v=4"></script>
 <script>
 (function(){
   var PD_IDS = ['michingamsung','heojunho','sinpureunsol','naseongjun','kimseonhwi','syunta','satsuki'];
@@ -697,7 +697,8 @@
       var ids = [];
       who.forEach(function(w){
         var p = packs.filter(function(q){ return q.id===w.pd; })[0];
-        var e = {date:f.date, time:f.time, title:(w.role==='int' ? cleanTitle(f.title)+' (통역)' : f.title), category:f.category, scope:f.scope||null, blocks:f.blocks};
+        var suffix = w.role==='int' ? ' (통역)' : (w.role==='rev' ? ' (검수)' : '');
+        var e = {date:f.date, time:f.time, title:cleanTitle(f.title)+suffix, category:f.category, scope:f.scope||null, blocks:f.blocks};
         Object.defineProperty(e, '_pd', {value:w.pd, writable:true, enumerable:false, configurable:true});
         p.events.push(e); ids.push(w.pd);
       });

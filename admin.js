@@ -343,13 +343,31 @@ window.PDAdmin = (function(){
       onOk({title:title, date:date, time:m.querySelector('#fTime').value || null, category:cat, scope:m.querySelector('#fScope').value || null, blocks:m.querySelector('#fBlocks').checked});
     });
   }
-  // mode 'multi': PD별 역할 선택 / mode 'single': 해당 PD 한 명
+  // 참여 PD 체크박스 목록에서 핵심 PD(미친감성·허준호·나성준·김선휘·김도현·서상환)를 맨 위에 두고, 나머지는 원래 순서대로.
+  var CORE_PD_ORDER = ['michingamsung','heojunho','naseongjun','kimseonhwi','kimdohyeon','seosanghwan'];
+  function sortedPds(){
+    var all = opts.getPds().slice(), core = [], rest = [];
+    CORE_PD_ORDER.forEach(function(id){
+      var p = all.filter(function(x){ return x.id===id; })[0];
+      if(p) core.push(p);
+    });
+    all.forEach(function(p){ if(CORE_PD_ORDER.indexOf(p.id)<0) rest.push(p); });
+    return core.concat(rest);
+  }
+  function pdCheckGroup(role, label, pdsSorted){
+    return '<label>'+label+'</label><div class="pdcheck-group">' + pdsSorted.map(function(p){
+      return '<label class="chk"><input type="checkbox" data-pd="'+p.id+'" data-role="'+role+'"> '+esc(p.name)+'</label>';
+    }).join('') + '</div>';
+  }
+  // mode 'multi': 강의자/검수자/통역자 란을 따로 두고 체크 / mode 'single': 해당 PD 한 명
   function openAdd(init, onOk){
     var rows = '';
     if(init.mode==='multi'){
-      rows = '<label>참여 PD (최소 1명)</label>' + opts.getPds().map(function(p){
-        return '<div class="pdrow"><span>'+esc(p.name)+'</span><select data-pd="'+p.id+'"><option value="">-</option><option value="main">강의·진행</option><option value="int">통역</option></select></div>';
-      }).join('');
+      var pdsSorted = sortedPds();
+      rows = '<div class="hint" style="margin-top:14px">아래 세 칸은 역할별로 따로예요 — 같은 사람이라도 역할에 맞는 칸에서만 체크하세요 (최소 1명은 강의자에 체크).</div>'
+        + pdCheckGroup('main', '강의자 (강의·진행)', pdsSorted)
+        + pdCheckGroup('rev', '검수자', pdsSorted)
+        + pdCheckGroup('int', '통역자', pdsSorted);
     }
     var m = openModal('<h3>일정 추가</h3>'
       + '<label>제목<input type="text" id="aTitle" placeholder="예: AI 아티스트 9회차"></label>'
@@ -364,7 +382,7 @@ window.PDAdmin = (function(){
     m.querySelector('#aOk').addEventListener('click', function(){
       var title = m.querySelector('#aTitle').value.trim(), d = m.querySelector('#aDate').value;
       var cat = readCat(m, 'a');
-      var who = [].slice.call(m.querySelectorAll('select[data-pd]')).filter(function(s){ return s.value; }).map(function(s){ return {pd:s.getAttribute('data-pd'), role:s.value}; });
+      var who = [].slice.call(m.querySelectorAll('input[type=checkbox][data-pd]')).filter(function(c){ return c.checked; }).map(function(c){ return {pd:c.getAttribute('data-pd'), role:c.getAttribute('data-role')}; });
       if(!title || !d){ toast('제목과 날짜를 입력해 주세요'); return; }
       if(!cat){ toast('분류를 입력해 주세요'); return; }
       if(init.mode==='multi' && !who.length){ toast('참여 PD를 1명 이상 골라 주세요'); return; }
