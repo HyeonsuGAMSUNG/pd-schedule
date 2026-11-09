@@ -348,7 +348,7 @@ window.PDAdmin = (function(){
   // 통역·검수 전담 인원과 해외 탑라이너 송세션(강의자 미정 placeholder)은 강의자 목록에서 제외.
   var INSTRUCTOR_PINNED = ['michingamsung','heojunho','naseongjun','kimseonhwi','kimdohyeon','seosanghwan',
     'kimyoungbin','choihagyeom','kimyuchan','yasuda','heojin',
-    'gingerbread','sarah',
+    'gingerbread','bensamama','atm','sarah',
     'jordanshow','charlottewilson','lenno','hongseokchan'];
   var INSTRUCTOR_EXCLUDE = ['syunta','satsuki','honomi','ohani','moana','choiseongryung','sinpureunsol','toplinersong'];
   var REVIEWER_PDS = ['syunta','satsuki','honomi','ohani','moana','choiseongryung'];
