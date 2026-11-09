@@ -294,24 +294,52 @@ window.PDAdmin = (function(){
   }
 
   // ---------- 공용 폼 ----------
+  var CUSTOM_CAT = '__custom__';
   function catOptions(sel){
     var C = opts.cats || {};
-    return Object.keys(C).map(function(k){ return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+esc(C[k].label)+'</option>'; }).join('');
+    return Object.keys(C).map(function(k){ return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+esc(C[k].label)+'</option>'; }).join('')
+      + '<option value="'+CUSTOM_CAT+'"'+(sel===CUSTOM_CAT?' selected':'')+'>+ 새 카테고리 직접 입력</option>';
+  }
+  function catFieldHtml(idPrefix, sel){
+    var C = opts.cats || {};
+    var known = Object.keys(C).indexOf(sel) >= 0;
+    var customVal = (sel && !known) ? sel : '';
+    return '<label>분류<select id="'+idPrefix+'Cat">'+catOptions(known ? sel : CUSTOM_CAT)+'</select></label>'
+      + '<label id="'+idPrefix+'CatCustomWrap" style="'+(known?'display:none':'')+'">새 카테고리 이름<input type="text" id="'+idPrefix+'CatCustom" value="'+esc(customVal)+'" placeholder="예: 유학반 설명회"></label>';
+  }
+  function wireCatToggle(m, idPrefix){
+    var sel = m.querySelector('#'+idPrefix+'Cat'), wrap = m.querySelector('#'+idPrefix+'CatCustomWrap');
+    sel.addEventListener('change', function(){ wrap.style.display = sel.value===CUSTOM_CAT ? '' : 'none'; });
+  }
+  function readCat(m, idPrefix){
+    var sel = m.querySelector('#'+idPrefix+'Cat');
+    if(sel.value===CUSTOM_CAT) return m.querySelector('#'+idPrefix+'CatCustom').value.trim();
+    return sel.value;
+  }
+  var SCOPE_OPTS = [['','자동 (카테고리 기준)'], ['korea','한국'], ['japan','일본'], ['china','중국'], ['intl','한중일 동시(통역 필요)']];
+  function scopeFieldHtml(idPrefix, sel){
+    return '<label>국가<select id="'+idPrefix+'Scope">' + SCOPE_OPTS.map(function(o){
+      return '<option value="'+o[0]+'"'+(o[0]===(sel||'')?' selected':'')+'>'+o[1]+'</option>';
+    }).join('') + '</select></label>';
   }
   function openEdit(init, onOk){
     var m = openModal('<h3>일정 수정</h3>'
       + '<label>제목<input type="text" id="fTitle" value="'+esc(init.title)+'"></label>'
       + '<label>날짜<input type="date" id="fDate" value="'+init.date+'"></label>'
       + '<label>시간 (비우면 시간 없음)<input type="time" id="fTime" value="'+(init.time||'')+'"></label>'
-      + '<label>분류<select id="fCat">'+catOptions(init.category)+'</select></label>'
+      + catFieldHtml('f', init.category)
+      + scopeFieldHtml('f', init.scope)
       + '<label class="chk"><input type="checkbox" id="fBlocks"'+(init.blocks?' checked':'')+'> 수업 있음 (해제하면 일정 아님·초록색)</label>'
       + '<div class="btns"><button type="button" id="fCancel">취소</button><button type="button" class="pri" id="fOk">적용</button></div>');
+    wireCatToggle(m, 'f');
     m.querySelector('#fCancel').addEventListener('click', closeModal);
     m.querySelector('#fOk').addEventListener('click', function(){
       var title = m.querySelector('#fTitle').value.trim(), date = m.querySelector('#fDate').value;
+      var cat = readCat(m, 'f');
       if(!title || !date){ toast('제목과 날짜를 입력해 주세요'); return; }
+      if(!cat){ toast('분류를 입력해 주세요'); return; }
       closeModal();
-      onOk({title:title, date:date, time:m.querySelector('#fTime').value || null, category:m.querySelector('#fCat').value, blocks:m.querySelector('#fBlocks').checked});
+      onOk({title:title, date:date, time:m.querySelector('#fTime').value || null, category:cat, scope:m.querySelector('#fScope').value || null, blocks:m.querySelector('#fBlocks').checked});
     });
   }
   // mode 'multi': PD별 역할 선택 / mode 'single': 해당 PD 한 명
@@ -326,17 +354,21 @@ window.PDAdmin = (function(){
       + '<label>제목<input type="text" id="aTitle" placeholder="예: AI 아티스트 9회차"></label>'
       + '<label>날짜<input type="date" id="aDate" value="'+(init.date||'')+'"></label>'
       + '<label>시간 (비우면 시간 없음)<input type="time" id="aTime" value="19:00"></label>'
-      + '<label>분류<select id="aCat">'+catOptions(init.category||'album')+'</select></label>'
+      + catFieldHtml('a', init.category||'album')
+      + scopeFieldHtml('a', init.scope)
       + '<label class="chk"><input type="checkbox" id="aBlocks" checked> 수업 있음</label>' + rows
       + '<div class="btns"><button type="button" id="aCancel">취소</button><button type="button" class="pri" id="aOk">추가</button></div>');
+    wireCatToggle(m, 'a');
     m.querySelector('#aCancel').addEventListener('click', closeModal);
     m.querySelector('#aOk').addEventListener('click', function(){
       var title = m.querySelector('#aTitle').value.trim(), d = m.querySelector('#aDate').value;
+      var cat = readCat(m, 'a');
       var who = [].slice.call(m.querySelectorAll('select[data-pd]')).filter(function(s){ return s.value; }).map(function(s){ return {pd:s.getAttribute('data-pd'), role:s.value}; });
       if(!title || !d){ toast('제목과 날짜를 입력해 주세요'); return; }
+      if(!cat){ toast('분류를 입력해 주세요'); return; }
       if(init.mode==='multi' && !who.length){ toast('참여 PD를 1명 이상 골라 주세요'); return; }
       closeModal();
-      onOk({title:title, date:d, time:m.querySelector('#aTime').value || null, category:m.querySelector('#aCat').value, blocks:m.querySelector('#aBlocks').checked}, who);
+      onOk({title:title, date:d, time:m.querySelector('#aTime').value || null, category:cat, scope:m.querySelector('#aScope').value || null, blocks:m.querySelector('#aBlocks').checked}, who);
     });
   }
 

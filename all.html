@@ -120,8 +120,13 @@
   var ALWAYS_INTERP_CATS = {global1:1, globalcareer:1, trackdesign:1, jordan:1, hitmakers:1, ginger:1, bensamama:1, hitsoundlaw:1, gingerpost:1};
   // 카테고리가 freelecture 등으로 따로 잡혀도 이 프로그램들의 무료특강/부속 행사는 늘 한중일 수업이에요.
   var ALWAYS_INTERP_TITLE_RE = /히트메이커스|트랙디자인/;
-  function isAlwaysInterp(x){ return !!ALWAYS_INTERP_CATS[x.category] || ALWAYS_INTERP_TITLE_RE.test(x.title); }
+  // 관리자가 일정 추가/수정에서 "국가"를 직접 골랐으면(x.scope) 카테고리·제목 추측보다 그 값을 우선해요.
+  function isAlwaysInterp(x){
+    if(x.scope) return x.scope==='intl';
+    return !!ALWAYS_INTERP_CATS[x.category] || ALWAYS_INTERP_TITLE_RE.test(x.title);
+  }
   function isInterpClass(x){
+    if(x.scope) return x.scope==='intl';
     if(/LENNO|레노/.test(x.title)) return false; // 레노 한국15기+일본5기: 통역은 있지만 한중일 동시진행이 아님
     if(SINGLE_LANG_CATS[x.category]) return false;
     if(isAlwaysInterp(x)) return true;
@@ -130,6 +135,7 @@
   // 레노(한국15기+일본5기 합동)는 한중일 동시진행은 아니지만 통역·검수 배정은 추적해요.
   // 중국1기·일본5기·TSM·한국 전용 오프라인 특강처럼 그 나라만 듣는 수업은 애초에 통역·검수 추적 대상이 아니에요.
   function needsTracking(x){
+    if(x.scope) return x.scope==='intl' || /LENNO|레노/.test(x.title);
     if(SINGLE_LANG_CATS[x.category]) return false;
     return isAlwaysInterp(x) || /LENNO|레노/.test(x.title);
   }
@@ -161,6 +167,7 @@
   function isGingerClass(x){ return x.category==='ginger' || x.category==='gingerpost'; }
   // 일본 전용: 일본 학생이 듣는 수업(일본 5기·TSM·일본 초급 5기·레노 합동) + 한중일 동시진행 수업
   function isJapanClass(x){
+    if(x.scope) return x.scope==='japan' || x.scope==='intl';
     if(x.category==='japan' || x.category==='tsm') return true;
     if(/일본|LENNO|레노/.test(x.title)) return true;
     return isInterpClass(x);
@@ -169,6 +176,7 @@
   // 글로벌1기·트랙디자인·히트메이커스·조던쇼·벤사마마·사운드의 법칙·진저브레드 포스트 등 한중일 동시진행 수업도 포함).
   // 중국/일본 단독(그 나라 학생만 듣는) 수업만 제외해요.
   function isKoreaOnlyClass(x){
+    if(x.scope) return x.scope==='korea' || x.scope==='intl';
     if(/LENNO|레노/.test(x.title)) return true;
     if(isAlwaysInterp(x)) return true; // 한중일 동시진행 수업(글로벌1기·트랙디자인·히트메이커스·조던쇼·벤사마마·사운드의 법칙·진저브레드 포스트 등)도 한국 학생이 들으니 포함
     if(x.category==='china' || x.category==='japan' || x.category==='tsm' || x.category==='toplinefree') return false;
@@ -229,10 +237,11 @@
         var key = e.date+'|'+e.category+'|'+(e.time||'');
         var x = map[key];
         if(!x){
-          x = map[key] = {key:key, date:e.date, time:e.time, category:e.category, title:e.title, titleRole:role, blocks:false, people:{}, offPeople:{}, srcs:[]};
+          x = map[key] = {key:key, date:e.date, time:e.time, category:e.category, title:e.title, titleRole:role, blocks:false, scope:null, people:{}, offPeople:{}, srcs:[]};
           order.push(key);
         }
         x.srcs.push({e:e, pd:pack.id, role:role});
+        if(e.scope) x.scope = e.scope;
         if(role==='main' && x.titleRole!=='main'){ x.title = e.title; x.titleRole = 'main'; }
         x.blocks = x.blocks || e.blocks;
         var bucket = e.blocks ? x.people : x.offPeople;
@@ -653,7 +662,7 @@
     var titleChanged = f.title !== x.title;
     x.srcs.forEach(function(s){
       var e = s.e;
-      e.date = f.date; e.time = f.time || null; e.category = f.category;
+      e.date = f.date; e.time = f.time || null; e.category = f.category; e.scope = f.scope || null;
       if(f.blocks !== x.blocks && e.blocks === x.blocks) e.blocks = f.blocks;
       if(titleChanged && e.blocks === f.blocks){ e.title = s.role==='int' ? cleanTitle(f.title)+' (통역)' : f.title; }
     });
@@ -662,7 +671,7 @@
     var x = findX(key); moving = null;
     if(!x || x.date===newDate){ renderCalendar(curYm); return; }
     var old = x.date, pdl = pdsOf(x);
-    applyEdit(x, {title:x.title, date:newDate, time:x.time, category:x.category, blocks:x.blocks});
+    applyEdit(x, {title:x.title, date:newDate, time:x.time, category:x.category, scope:x.scope, blocks:x.blocks});
     PDAdmin.log('이동: '+cleanTitle(x.title)+' '+dlabel(old)+' → '+dlabel(newDate), pdl);
     selectedDate = newDate; curYm = newDate.slice(0,7);
     rebuild();
@@ -674,7 +683,7 @@
     });
   }
   function openEditX(x){
-    PDAdmin.openEdit({title:cleanTitle(x.title), date:x.date, time:x.time, category:x.category, blocks:x.blocks}, function(f){
+    PDAdmin.openEdit({title:cleanTitle(x.title), date:x.date, time:x.time, category:x.category, scope:x.scope, blocks:x.blocks}, function(f){
       var origDate = x.date, pdl = pdsOf(x);
       if(cleanTitle(x.title)===f.title) f.title = x.title;
       applyEdit(x, f);
@@ -688,7 +697,7 @@
       var ids = [];
       who.forEach(function(w){
         var p = packs.filter(function(q){ return q.id===w.pd; })[0];
-        var e = {date:f.date, time:f.time, title:(w.role==='int' ? cleanTitle(f.title)+' (통역)' : f.title), category:f.category, blocks:f.blocks};
+        var e = {date:f.date, time:f.time, title:(w.role==='int' ? cleanTitle(f.title)+' (통역)' : f.title), category:f.category, scope:f.scope||null, blocks:f.blocks};
         Object.defineProperty(e, '_pd', {value:w.pd, writable:true, enumerable:false, configurable:true});
         p.events.push(e); ids.push(w.pd);
       });

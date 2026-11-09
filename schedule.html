@@ -311,9 +311,9 @@
     });
   }
   function editEvent(e){
-    PDAdmin.openEdit({title:e.title, date:e.date, time:e.time, category:e.category, blocks:e.blocks}, function(f){
+    PDAdmin.openEdit({title:e.title, date:e.date, time:e.time, category:e.category, scope:e.scope, blocks:e.blocks}, function(f){
       var od = e.date;
-      e.title = f.title; e.date = f.date; e.time = f.time; e.category = f.category; e.blocks = f.blocks;
+      e.title = f.title; e.date = f.date; e.time = f.time; e.category = f.category; e.scope = f.scope || null; e.blocks = f.blocks;
       PDAdmin.log('수정: '+f.title+(od!==f.date?' ('+dlabel(od)+' → '+dlabel(f.date)+')':''), [pdId]);
       selectedDate = f.date; curYm = f.date.slice(0,7); adminRerender();
     });
@@ -364,7 +364,7 @@
     var add = ev.target.closest('.adm-add');
     if(add){
       PDAdmin.openAdd({mode:'single', date:add.getAttribute('data-date'), category:'beginner'}, function(f){
-        events.push({date:f.date, time:f.time, title:f.title, category:f.category, blocks:f.blocks});
+        events.push({date:f.date, time:f.time, title:f.title, category:f.category, scope:f.scope||null, blocks:f.blocks});
         PDAdmin.log('추가: '+f.title+' '+dlabel(f.date), [pdId]);
         selectedDate = f.date; curYm = f.date.slice(0,7); adminRerender();
       });
@@ -376,9 +376,9 @@
     if(!e) return;
     var act = btn.getAttribute('data-act');
     if(act==='edit'){
-      PDAdmin.openEdit({title:e.title, date:e.date, time:e.time, category:e.category, blocks:e.blocks}, function(f){
+      PDAdmin.openEdit({title:e.title, date:e.date, time:e.time, category:e.category, scope:e.scope, blocks:e.blocks}, function(f){
         var od = e.date;
-        e.title = f.title; e.date = f.date; e.time = f.time; e.category = f.category; e.blocks = f.blocks;
+        e.title = f.title; e.date = f.date; e.time = f.time; e.category = f.category; e.scope = f.scope || null; e.blocks = f.blocks;
         PDAdmin.log('수정: '+f.title+(od!==f.date?' ('+dlabel(od)+' → '+dlabel(f.date)+')':''), [pdId]);
         selectedDate = f.date; curYm = f.date.slice(0,7); adminRerender();
       });
