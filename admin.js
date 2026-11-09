@@ -344,18 +344,20 @@ window.PDAdmin = (function(){
     });
   }
   // 참여 PD 체크박스 목록: 강의자/검수자/통역자 역할마다 보여줄 사람과 순서가 따로예요.
-  // 강의자: 핵심 PD(미친감성·허준호·나성준·김선휘·김도현·서상환) + 게스트/특강 강사(Sarah·Gingerbread·홍석찬·레노·조던쇼·샬롯윌슨)를 상단 고정,
-  // 그 다음 나머지(김영빈·최하겸·김유찬·Yasuda·허진 PD 등). 통역·검수 전담 인원(아래)은 강의자 목록에서 제외.
+  // 강의자: "~PD" 붙은 핵심/멘토 인원 → Gingerbread·Sarah(벤사마마·ATM은 PD 카드가 아직 없음) → 조던쇼·샬롯윌슨·레노·홍석찬 순.
+  // 통역·검수 전담 인원과 해외 탑라이너 송세션(강의자 미정 placeholder)은 강의자 목록에서 제외.
   var INSTRUCTOR_PINNED = ['michingamsung','heojunho','naseongjun','kimseonhwi','kimdohyeon','seosanghwan',
-    'sarah','gingerbread','hongseokchan','lenno','jordanshow','charlottewilson'];
-  var INTERP_ONLY_IDS = ['syunta','satsuki','honomi','ohani','moana','choiseongryung','sinpureunsol'];
+    'kimyoungbin','choihagyeom','kimyuchan','yasuda','heojin',
+    'gingerbread','sarah',
+    'jordanshow','charlottewilson','lenno','hongseokchan'];
+  var INSTRUCTOR_EXCLUDE = ['syunta','satsuki','honomi','ohani','moana','choiseongryung','sinpureunsol','toplinersong'];
   var REVIEWER_PDS = ['syunta','satsuki','honomi','ohani','moana','choiseongryung'];
   var INTERPRETER_PDS = ['sinpureunsol','heojunho','satsuki','syunta','honomi','ohani','moana','choiseongryung'];
   function byIds(all, ids){ return ids.map(function(id){ return all.filter(function(p){ return p.id===id; })[0]; }).filter(Boolean); }
   function instructorPds(){
     var all = opts.getPds().slice();
     var pinned = byIds(all, INSTRUCTOR_PINNED);
-    var rest = all.filter(function(p){ return INSTRUCTOR_PINNED.indexOf(p.id)<0 && INTERP_ONLY_IDS.indexOf(p.id)<0; });
+    var rest = all.filter(function(p){ return INSTRUCTOR_PINNED.indexOf(p.id)<0 && INSTRUCTOR_EXCLUDE.indexOf(p.id)<0; });
     return pinned.concat(rest);
   }
   function pdCheckGroup(role, label, pdList){
