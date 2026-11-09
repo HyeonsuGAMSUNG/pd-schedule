@@ -190,6 +190,11 @@
   // 해외 게스트 강의자: 항상 맨 위, 눈에 띄는 금색 배지로 표시
   var GUEST_IDS = {jordanshow:1, charlottewilson:1};
   function shortName(id){ return SHORT[id] || (pdName[id]||id).slice(0,2); }
+  var PD_GROUPS = [
+    {label:'PD', ids:['michingamsung','heojunho','naseongjun','kimseonhwi','kimdohyeon','seosanghwan']},
+    {label:'강의자', ids:['jordanshow','charlottewilson','lenno','hongseokchan','sarah','kimyoungbin','choihagyeom','kimyuchan','yasuda','heojin','gingerbread','bensamama','atm']},
+    {label:'통역자', ids:['sinpureunsol','syunta','satsuki','honomi','ohani','choiseongryung','moana']}
+  ];
 
   var pds = [];           // [{id,name}]
   var pdName = {};
@@ -377,10 +382,20 @@
   // ---------- render ----------
   function renderFilters(){
     var anyOn = PD_IDS.some(function(id){ return active[id]; });
-    var html = '<button type="button" class="fchip'+(anyOn?'':' on')+'" data-pd="*">전체</button>';
-    html += pds.map(function(p){
-      return '<button type="button" class="fchip'+(active[p.id]?' on':'')+'" data-pd="'+p.id+'">'+esc(p.name)+'</button>';
-    }).join('');
+    function chip(p){ return '<button type="button" class="fchip'+(active[p.id]?' on':'')+'" data-pd="'+p.id+'">'+esc(p.name)+'</button>'; }
+    var html = '<div class="fgroup"><button type="button" class="fchip'+(anyOn?'':' on')+'" data-pd="*">전체</button></div>';
+    var used = {};
+    PD_GROUPS.forEach(function(g){
+      var items = [];
+      g.ids.forEach(function(id){
+        var p = pds.filter(function(q){ return q.id===id; })[0];
+        if(!p) return;
+        used[id] = 1; items.push(chip(p));
+      });
+      if(items.length) html += '<div class="fgroup"><span class="flabel">'+esc(g.label)+'</span>'+items.join('')+'</div>';
+    });
+    var rest = pds.filter(function(p){ return !used[p.id]; }).map(chip);
+    if(rest.length) html += '<div class="fgroup"><span class="flabel">기타</span>'+rest.join('')+'</div>';
     var box = document.getElementById('filters');
     box.innerHTML = html;
   }
