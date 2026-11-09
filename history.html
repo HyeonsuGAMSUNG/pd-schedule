@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>변경 이력</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800;900&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<link rel="stylesheet" href="style.css?v=20261015b">
+<style>
+.hrow{display:flex;gap:12px;align-items:flex-start;padding:14px 4px;border-bottom:1px solid var(--border)}
+.hrow:last-child{border-bottom:none}
+.hdot{width:9px;height:9px;border-radius:50%;background:var(--muted-2);margin-top:7px;flex:none}
+.hdot.me{background:var(--accent)}
+.hdot.auto{background:var(--muted-2)}
+.hbody{flex:1;min-width:0}
+.hwho{display:inline-block;font-weight:800;font-size:.82rem;color:var(--accent);background:var(--chip-bg);border-radius:7px;padding:1px 8px;margin-right:6px}
+.hwho.unknown{color:var(--muted)}
+.hmsg{font-size:.92rem;color:var(--fg);line-height:1.5;word-break:break-word}
+.hmeta{margin-top:4px;font-size:.74rem;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap}
+.hmeta a{color:var(--muted);text-decoration:underline}
+.hfiles{margin-top:3px;font-size:.72rem;color:var(--muted-2);font-family:'IBM Plex Mono',monospace}
+.hmore{display:block;width:100%;margin-top:16px;padding:11px;border-radius:10px;border:1px solid var(--border);background:var(--chip-bg);color:var(--fg);font:inherit;font-weight:800;font-size:.9rem;cursor:pointer}
+.hempty{padding:30px 4px;text-align:center;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="top-inner">
+    <a class="backlink" href="index.html">‹ 목록</a>
+    <div class="brand">
+      <h1>변경 이력</h1>
+      <span class="tag-rec">LOG</span>
+    </div>
+    <div class="sub" id="note">불러오는 중…</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hint" style="margin:0 0 14px">사이트에서 바뀐 모든 일정을 GitHub 커밋 기록 그대로 보여줘요 — 누가(이름 입력 기준) · 언제 · 무엇을 고쳤는지가 여기 다 남아요. 관리자 모드에서 저장할 때 입력한 이름이 [이름]으로 표시돼요. IP·기기 정보는 이 사이트 구조상(정적 파일 + GitHub API) 기록되지 않아요.</div>
+  <div id="list"></div>
+  <button type="button" class="hmore" id="moreBtn" style="display:none">더 보기</button>
+</div>
+
+<script src="sync-status.js"></script>
+<script>
+(function(){
+  var REPO = 'HyeonsuGAMSUNG/pd-schedule';
+  var page = 1, per = 40, done = false;
+
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function fmt(iso){
+    var d = new Date(iso);
+    var kst = new Date(d.getTime() + 9*3600*1000);
+    var y = kst.getUTCFullYear(), m = kst.getUTCMonth()+1, day = kst.getUTCDate();
+    var hh = kst.getUTCHours(), mm = kst.getUTCMinutes();
+    function p2(n){ return n<10?'0'+n:''+n; }
+    return y+'.'+p2(m)+'.'+p2(day)+' '+p2(hh)+':'+p2(mm);
+  }
+  function parseMsg(full){
+    var first = full.split('\n')[0];
+    var m = first.match(/^admin:\s*(?:\[([^\]]+)\]\s*)?(.+)$/);
+    if(m) return {kind:'admin', who:m[1]||null, text:m[2]};
+    var m2 = first.match(/^(sync|project-sync):\s*(.+)$/);
+    if(m2) return {kind:'auto', who:null, text:m2[2]};
+    return {kind:'other', who:null, text:first};
+  }
+  function rowHtml(c){
+    var info = parseMsg(c.commit.message);
+    var dotCls = info.kind==='admin' ? 'me' : 'auto';
+    var whoHtml = info.kind==='admin'
+      ? (info.who ? '<span class="hwho">'+esc(info.who)+'</span>' : '<span class="hwho unknown">이름 미기록</span>')
+      : (info.kind==='auto' ? '<span class="hwho unknown">자동 동기화</span>' : '<span class="hwho unknown">'+esc((c.commit.author&&c.commit.author.name)||'')+'</span>');
+    return '<div class="hrow">'
+      + '<div class="hdot '+dotCls+'"></div>'
+      + '<div class="hbody">'
+      + whoHtml + '<span class="hmsg">'+esc(info.text)+'</span>'
+      + '<div class="hmeta"><span>'+fmt(c.commit.author.date)+'</span>'
+      + '<a href="https://github.com/'+REPO+'/commit/'+c.sha+'" target="_blank" rel="noopener">GitHub에서 보기(바뀐 파일 확인)</a></div>'
+      + '</div></div>';
+  }
+  function load(){
+    var btn = document.getElementById('moreBtn');
+    btn.disabled = true; btn.textContent = '불러오는 중…';
+    fetch('https://api.github.com/repos/'+REPO+'/commits?per_page='+per+'&page='+page, {cache:'no-store'})
+      .then(function(r){
+        if(!r.ok) throw new Error('GitHub API 호출 실패 ('+r.status+')');
+        return r.json();
+      })
+      .then(function(commits){
+        if(!commits.length){ done = true; btn.style.display = 'none'; if(page===1) document.getElementById('list').innerHTML = '<div class="hempty">기록이 없어요.</div>'; return; }
+        var list = document.getElementById('list');
+        list.insertAdjacentHTML('beforeend', commits.map(rowHtml).join(''));
+        document.getElementById('note').textContent = '최근 변경 '+((page-1)*per+commits.length)+'건 표시 중';
+        page++;
+        btn.style.display = commits.length===per ? '' : 'none';
+        btn.disabled = false; btn.textContent = '더 보기';
+      })
+      .catch(function(e){
+        document.getElementById('note').textContent = '불러오지 못했어요: '+e.message;
+        if(page===1) document.getElementById('list').innerHTML = '<div class="hempty">GitHub에서 기록을 불러오지 못했어요.<br>(비공개 저장소이거나 API 요청 한도를 초과했을 수 있어요 — 잠시 후 다시 시도해 주세요.)</div>';
+        btn.style.display = 'none';
+      });
+  }
+  document.getElementById('moreBtn').addEventListener('click', load);
+  PDSync.ready.then(load);
+})();
+</script>
+
+</body>
+</html>

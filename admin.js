@@ -5,7 +5,10 @@
 window.PDAdmin = (function(){
   var GH = {owner:'HyeonsuGAMSUNG', repo:'pd-schedule', branch:'main'};
   var LS_KEY = 'pd_admin_v1';
-  var S = {on:false, token:null, shas:{}, dirty:{}, pending:[]};
+  var LS_NAME_KEY = 'pd_admin_name_v1';
+  var S = {on:false, token:null, name:'', shas:{}, dirty:{}, pending:[]};
+  function getSavedName(){ try{ return localStorage.getItem(LS_NAME_KEY) || ''; }catch(e){ return ''; } }
+  function saveName(n){ try{ localStorage.setItem(LS_NAME_KEY, n); }catch(e){} }
   var opts = null;
 
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -112,17 +115,23 @@ window.PDAdmin = (function(){
   }
   function showAuth2(blob, fromRemote){
     if(blob){
-      var m = openModal('<h3>관리자 잠금 해제</h3><label>비밀번호<input type="password" id="admPw" autocomplete="current-password"></label>'
+      var m = openModal('<h3>관리자 잠금 해제</h3>'
+        + '<label>이 작업을 하는 사람 이름(실명/별명)<input type="text" id="admName" value="'+esc(getSavedName())+'" placeholder="예: 현수"></label>'
+        + '<div class="hint" style="margin-top:4px">저장할 때 기록(변경 이력)에 이 이름이 남아요. 공용 비밀번호를 아는 다른 사람이 써도 누가 언제 뭘 고쳤는지 구분하기 위해서예요.</div>'
+        + '<label>비밀번호<input type="password" id="admPw" autocomplete="current-password"></label>'
         + '<div class="err" id="admErr" style="display:none"></div>'
         + '<div class="btns"><button type="button" id="admCancel">취소</button><button type="button" class="pri" id="admOk">열기</button></div>'
         + '<div class="hint"><a href="#" id="admReset">이 기기의 관리자 설정 지우기</a></div>');
-      var pw = m.querySelector('#admPw'); pw.focus();
+      var pw = m.querySelector('#admPw');
       var go = function(){
         var err = m.querySelector('#admErr'); err.style.display = 'none';
-        decryptToken(blob, pw.value).then(function(tok){ if(fromRemote) setBlob(blob); enter(tok); }).catch(function(){
+        var name = m.querySelector('#admName').value.trim();
+        if(!name){ err.textContent = '이름을 입력해 주세요.'; err.style.display = 'block'; return; }
+        decryptToken(blob, pw.value).then(function(tok){ if(fromRemote) setBlob(blob); saveName(name); S.name = name; enter(tok); }).catch(function(){
           err.textContent = '비밀번호가 맞지 않아요.'; err.style.display = 'block';
         });
       };
+      m.querySelector('#admName').focus();
       m.querySelector('#admOk').addEventListener('click', go);
       pw.addEventListener('keydown', function(e){ if(e.key==='Enter') go(); });
       m.querySelector('#admCancel').addEventListener('click', closeModal);
@@ -133,6 +142,7 @@ window.PDAdmin = (function(){
       if(fromRemote){ var h = m.querySelector('.hint'); h.insertAdjacentHTML('afterbegin', '모든 기기 공용 관리자 설정을 찾았어요. 비밀번호만 입력하면 돼요.<br>'); }
     } else {
       var s = openModal('<h3>관리자 최초 설정 (이 기기에서 1번만)</h3>'
+        + '<label>이 작업을 하는 사람 이름(실명/별명)<input type="text" id="admName" value="'+esc(getSavedName())+'" placeholder="예: 현수"></label>'
         + '<label>GitHub 토큰<input type="password" id="admTok" autocomplete="off" placeholder="github_pat_..."></label>'
         + '<label>새 관리자 비밀번호<input type="password" id="admPw1" autocomplete="new-password"></label>'
         + '<label>비밀번호 확인<input type="password" id="admPw2" autocomplete="new-password"></label>'
@@ -149,13 +159,15 @@ window.PDAdmin = (function(){
       s.querySelector('#admCancel').addEventListener('click', closeModal);
       s.querySelector('#admOk').addEventListener('click', function(){
         var err = s.querySelector('#admErr'); err.style.display = 'none';
+        var name = s.querySelector('#admName').value.trim();
         var tok = s.querySelector('#admTok').value.trim(), p1 = s.querySelector('#admPw1').value, p2 = s.querySelector('#admPw2').value;
         var fail = function(t){ err.textContent = t; err.style.display = 'block'; };
+        if(!name) return fail('이름을 입력해 주세요.');
         if(!tok) return fail('토큰을 입력해 주세요.');
         var share = s.querySelector('#admShareChk').checked;
         if(p1.length < (share ? 12 : 8)) return fail(share ? '모든 기기 공용으로 쓰려면 비밀번호를 12자 이상으로 해 주세요.' : '비밀번호는 8자 이상으로 해 주세요.');
         if(p1 !== p2) return fail('비밀번호 확인이 달라요.');
-        S.token = tok;
+        S.token = tok; S.name = name;
         gh('').then(function(r){
           if(!r.ok) throw new Error('토큰으로 저장소에 접근할 수 없어요 ('+r.status+'). 토큰을 다시 확인해 주세요.');
           return r.json();
@@ -167,22 +179,22 @@ window.PDAdmin = (function(){
           if(!share) return null;
           return uploadShared(b);
         }).then(function(){
-          enter(tok);
-        }).catch(function(e){ S.token = null; fail(e.message || '설정에 실패했어요.'); });
+          saveName(name); enter(tok);
+        }).catch(function(e){ S.token = null; S.name = ''; fail(e.message || '설정에 실패했어요.'); });
       });
     }
   }
 
   function uploadShared(blob){
     return gh('/contents/'+SHARED_PATH+'?ref='+GH.branch).then(function(r){ return r.ok ? r.json() : null; }).then(function(cur){
-      return putFile(SHARED_PATH, JSON.stringify(blob)+'\n', cur ? cur.sha : null, 'admin: 모든 기기 공용 관리자 설정 올림');
+      return putFile(SHARED_PATH, JSON.stringify(blob)+'\n', cur ? cur.sha : null, 'admin: '+(S.name?'['+S.name+'] ':'')+'모든 기기 공용 관리자 설정 올림');
     });
   }
   function removeShared(){
     return gh('/contents/'+SHARED_PATH+'?ref='+GH.branch).then(function(r){
       if(!r.ok) return null;
       return r.json().then(function(cur){
-        return gh('/contents/'+SHARED_PATH, {method:'DELETE', body:JSON.stringify({message:'admin: 모든 기기 공용 관리자 설정 삭제', sha:cur.sha, branch:GH.branch})});
+        return gh('/contents/'+SHARED_PATH, {method:'DELETE', body:JSON.stringify({message:'admin: '+(S.name?'['+S.name+'] ':'')+'모든 기기 공용 관리자 설정 삭제', sha:cur.sha, branch:GH.branch})});
       });
     });
   }
@@ -223,7 +235,7 @@ window.PDAdmin = (function(){
 
   function exit(force){
     if(!force && Object.keys(S.dirty).length && !confirm('저장하지 않은 변경이 있어요. 버리고 나갈까요?')) return;
-    S.on = false; S.token = null; S.dirty = {}; S.pending = [];
+    S.on = false; S.token = null; S.name = ''; S.dirty = {}; S.pending = [];
     document.body.classList.remove('adm-on');
     opts.btn.textContent = '관리자'; opts.btn.classList.remove('on');
     var bar = document.getElementById('admBar'); if(bar) bar.parentNode.removeChild(bar);
@@ -274,12 +286,13 @@ window.PDAdmin = (function(){
     if(!ids.length && !S.pending.length) return;
     var sv = document.getElementById('admSave'); sv.disabled = true; sv.textContent = '저장 중…';
     var summary = S.pending.slice(0,3).join(', ')+(S.pending.length>3?' 외 '+(S.pending.length-3)+'건':'');
+    var who = S.name ? '['+S.name+'] ' : '';
     var files = opts.getFiles();   // [{key, path, text, isNew}]
     var chain = Promise.resolve();
     files.forEach(function(f){
       if(!S.dirty[f.key]) return;
       chain = chain.then(function(){
-        return putFile(f.path, f.text, f.isNew ? null : S.shas[f.key], 'admin: '+summary+' ['+f.key+']').then(function(j){
+        return putFile(f.path, f.text, f.isNew ? null : S.shas[f.key], 'admin: '+who+summary+' ['+f.key+']').then(function(j){
           S.shas[f.key] = j.content.sha; delete S.dirty[f.key];
         });
       });
