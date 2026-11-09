@@ -357,13 +357,13 @@ window.PDAdmin = (function(){
     });
   }
   // 참여 PD 체크박스 목록: 강의자/검수자/통역자 역할마다 보여줄 사람과 순서가 따로예요.
-  // 강의자: "~PD" 붙은 핵심/멘토 인원 → Gingerbread·Sarah(벤사마마·ATM은 PD 카드가 아직 없음) → 조던쇼·샬롯윌슨·레노·홍석찬 순.
-  // 통역·검수 전담 인원과 해외 탑라이너 송세션(강의자 미정 placeholder)은 강의자 목록에서 제외.
+  // 강의자: "~PD" 붙은 핵심/멘토 인원 → Gingerbread·Ben Samama·ATM·Sarah → Jordan Shaw·Charlotte Wilson·Lenno·홍석찬 순.
+  // 통역·검수 전담 인원은 강의자 목록에서 제외.
   var INSTRUCTOR_PINNED = ['michingamsung','heojunho','naseongjun','kimseonhwi','kimdohyeon','seosanghwan',
     'kimyoungbin','choihagyeom','kimyuchan','yasuda','heojin',
     'gingerbread','bensamama','atm','sarah',
     'jordanshow','charlottewilson','lenno','hongseokchan'];
-  var INSTRUCTOR_EXCLUDE = ['syunta','satsuki','honomi','ohani','moana','choiseongryung','sinpureunsol','toplinersong'];
+  var INSTRUCTOR_EXCLUDE = ['syunta','satsuki','honomi','ohani','moana','choiseongryung','sinpureunsol'];
   var REVIEWER_PDS = ['syunta','satsuki','honomi','ohani','moana','choiseongryung'];
   var INTERPRETER_PDS = ['sinpureunsol','heojunho','satsuki','syunta','honomi','ohani','moana','choiseongryung'];
   function byIds(all, ids){ return ids.map(function(id){ return all.filter(function(p){ return p.id===id; })[0]; }).filter(Boolean); }

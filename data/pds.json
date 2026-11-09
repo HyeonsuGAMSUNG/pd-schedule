@@ -1,12 +1,12 @@
 [
   {
     "id": "jordanshow",
-    "name": "조던쇼",
+    "name": "Jordan Shaw",
     "desc": "히트메이커스 2 게스트 강의(WEEK 5~8)"
   },
   {
     "id": "charlottewilson",
-    "name": "샬롯윌슨",
+    "name": "Charlotte Wilson",
     "desc": "히트메이커스 2 게스트 강의(WEEK 9~12)"
   },
   {
@@ -66,7 +66,7 @@
   },
   {
     "id": "lenno",
-    "name": "레노",
+    "name": "Lenno",
     "desc": "한국 15기·일본 5기 합동 수업 (통역·검수 미정)"
   },
   {
@@ -83,11 +83,6 @@
     "id": "sarah",
     "name": "Sarah",
     "desc": "한국 15기 연장반 강의"
-  },
-  {
-    "id": "toplinersong",
-    "name": "해외 탑라이너 송세션",
-    "desc": "한국 15기 39·41·43주차 (강의자 미정)"
   },
   {
     "id": "kimyoungbin",
