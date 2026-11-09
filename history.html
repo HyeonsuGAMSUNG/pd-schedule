@@ -37,7 +37,7 @@
 </header>
 
 <div class="wrap">
-  <div class="hint" style="margin:0 0 14px">사이트에서 바뀐 모든 일정을 GitHub 커밋 기록 그대로 보여줘요 — 누가(이름 입력 기준) · 언제 · 무엇을 고쳤는지가 여기 다 남아요. 관리자 모드에서 저장할 때 입력한 이름이 [이름]으로 표시돼요. IP·기기 정보는 이 사이트 구조상(정적 파일 + GitHub API) 기록되지 않아요.</div>
+  <div class="hint" style="margin:0 0 14px">사이트에서 바뀐 모든 일정을 GitHub 커밋 기록 그대로 보여줘요 — 접속 IP · 언제 · 무엇을 고쳤는지가 여기 다 남아요. 관리자 모드에서 저장할 때 자동으로 기록된 IP가 (IP ...)로 표시돼요.</div>
   <div id="list"></div>
   <button type="button" class="hmore" id="moreBtn" style="display:none">더 보기</button>
 </div>
@@ -59,17 +59,19 @@
   }
   function parseMsg(full){
     var first = full.split('\n')[0];
-    var m = first.match(/^admin:\s*(?:\[([^\]]+)\]\s*)?(.+)$/);
-    if(m) return {kind:'admin', who:m[1]||null, text:m[2]};
+    var ipm = first.match(/^admin:\s*([\s\S]+?)\s*\(IP\s+([^)]+)\)$/);
+    if(ipm) return {kind:'admin', ip:ipm[2], text:ipm[1]};
+    var m = first.match(/^admin:\s*(.+)$/);
+    if(m) return {kind:'admin', ip:null, text:m[1]};
     var m2 = first.match(/^(sync|project-sync):\s*(.+)$/);
-    if(m2) return {kind:'auto', who:null, text:m2[2]};
-    return {kind:'other', who:null, text:first};
+    if(m2) return {kind:'auto', ip:null, text:m2[2]};
+    return {kind:'other', ip:null, text:first};
   }
   function rowHtml(c){
     var info = parseMsg(c.commit.message);
     var dotCls = info.kind==='admin' ? 'me' : 'auto';
     var whoHtml = info.kind==='admin'
-      ? (info.who ? '<span class="hwho">'+esc(info.who)+'</span>' : '<span class="hwho unknown">이름 미기록</span>')
+      ? (info.ip ? '<span class="hwho">IP '+esc(info.ip)+'</span>' : '<span class="hwho unknown">IP 미기록</span>')
       : (info.kind==='auto' ? '<span class="hwho unknown">자동 동기화</span>' : '<span class="hwho unknown">'+esc((c.commit.author&&c.commit.author.name)||'')+'</span>');
     return '<div class="hrow">'
       + '<div class="hdot '+dotCls+'"></div>'
