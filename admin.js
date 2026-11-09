@@ -373,20 +373,36 @@ window.PDAdmin = (function(){
     var rest = all.filter(function(p){ return INSTRUCTOR_PINNED.indexOf(p.id)<0 && INSTRUCTOR_EXCLUDE.indexOf(p.id)<0; });
     return pinned.concat(rest);
   }
-  function pdCheckGroup(role, label, pdList){
-    return '<label>'+label+'</label><div class="pdcheck-group">' + pdList.map(function(p){
+  function pdCheckGroup(role, label, pdList, allPds){
+    var shownIds = pdList.map(function(p){ return p.id; });
+    var addable = allPds.filter(function(p){ return shownIds.indexOf(p.id)<0; });
+    return '<label>'+label+'</label><div class="pdcheck-group" id="pcg_'+role+'">' + pdList.map(function(p){
       return '<label class="chk"><input type="checkbox" data-pd="'+p.id+'" data-role="'+role+'"> '+esc(p.name)+'</label>';
-    }).join('') + '</div>';
+    }).join('') + '</div>'
+    + '<div class="pdadd-row"><select id="padd_'+role+'"><option value="">+ 목록에 없는 사람 추가…</option>'
+      + addable.map(function(p){ return '<option value="'+p.id+'">'+esc(p.name)+'</option>'; }).join('')
+      + '</select></div>';
+  }
+  function wirePdAdd(m, role, allPds){
+    var sel = m.querySelector('#padd_'+role); if(!sel) return;
+    sel.addEventListener('change', function(){
+      var id = sel.value; if(!id) return;
+      var p = allPds.filter(function(q){ return q.id===id; })[0]; if(!p) return;
+      var lbl = document.createElement('label'); lbl.className = 'chk';
+      lbl.innerHTML = '<input type="checkbox" data-pd="'+p.id+'" data-role="'+role+'" checked> '+esc(p.name);
+      m.querySelector('#pcg_'+role).appendChild(lbl);
+      sel.querySelector('option[value="'+id+'"]').remove();
+      sel.value = '';
+    });
   }
   // mode 'multi': 강의자/검수자/통역자 란을 따로 두고 체크 / mode 'single': 해당 PD 한 명
   function openAdd(init, onOk){
-    var rows = '';
+    var rows = '', all = opts.getPds().slice();
     if(init.mode==='multi'){
-      var all = opts.getPds().slice();
-      rows = '<div class="hint" style="margin-top:14px">아래 세 칸은 역할별로 따로예요 — 같은 사람이라도 역할에 맞는 칸에서만 체크하세요 (최소 1명은 강의자에 체크).</div>'
-        + pdCheckGroup('main', '강의자 (강의·진행)', instructorPds())
-        + pdCheckGroup('rev', '검수자', byIds(all, REVIEWER_PDS))
-        + pdCheckGroup('int', '통역자', byIds(all, INTERPRETER_PDS));
+      rows = '<div class="hint" style="margin-top:14px">아래 세 칸은 역할별로 따로예요 — 같은 사람이라도 역할에 맞는 칸에서만 체크하세요 (최소 1명은 강의자에 체크). 목록에 없는 사람은 각 칸 아래 "+ 목록에 없는 사람 추가"로 PD 카드가 있는 아무나 담을 수 있어요.</div>'
+        + pdCheckGroup('main', '강의자 (강의·진행)', instructorPds(), all)
+        + pdCheckGroup('rev', '검수자', byIds(all, REVIEWER_PDS), all)
+        + pdCheckGroup('int', '통역자', byIds(all, INTERPRETER_PDS), all);
     }
     var m = openModal('<h3>일정 추가</h3>'
       + '<label>제목<input type="text" id="aTitle" placeholder="예: AI 아티스트 9회차"></label>'
@@ -397,6 +413,7 @@ window.PDAdmin = (function(){
       + '<label class="chk"><input type="checkbox" id="aBlocks" checked> 수업 있음</label>' + rows
       + '<div class="btns"><button type="button" id="aCancel">취소</button><button type="button" class="pri" id="aOk">추가</button></div>');
     wireCatToggle(m, 'a');
+    if(init.mode==='multi'){ wirePdAdd(m, 'main', all); wirePdAdd(m, 'rev', all); wirePdAdd(m, 'int', all); }
     m.querySelector('#aCancel').addEventListener('click', closeModal);
     m.querySelector('#aOk').addEventListener('click', function(){
       var title = m.querySelector('#aTitle').value.trim(), d = m.querySelector('#aDate').value;
