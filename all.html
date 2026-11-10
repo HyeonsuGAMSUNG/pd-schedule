@@ -112,12 +112,15 @@
     dinner:{label:'치킨 모임', hue:20},
     hitsoundlaw:{label:'글로벌 히트곡 사운드의 법칙', hue:5},
     mentor15:{label:'15기 멘토특강', hue:120},
-    gingerpost:{label:'진저브레드 포스트프로덕션', hue:45}
+    gingerpost:{label:'진저브레드 포스트프로덕션', hue:45},
+    global2:{label:'글로벌 2기', hue:300},
+    ginger2:{label:'진저브레드 글로벌2기', hue:75},
+    atm2:{label:'ATM 글로벌2기', hue:355}
   };
   // 한중일 동시진행(신푸른솔이 늘 통역으로 들어가는) 수업만 — 중국1기·일본5기·TSM처럼 그 나라 학생만 모아 그 나라 통역자가
   // 알아서 진행하는 단일언어 수업은 이 탭에서 제외해요(통역자가 있어도 동시진행이 아니므로 넣지 않음).
   var SINGLE_LANG_CATS = {china:1, japan:1, tsm:1, toplinefree:1, mentor:1, offlinekr:1};
-  var ALWAYS_INTERP_CATS = {global1:1, globalcareer:1, trackdesign:1, jordan:1, hitmakers:1, ginger:1, bensamama:1, hitsoundlaw:1, gingerpost:1};
+  var ALWAYS_INTERP_CATS = {global1:1, globalcareer:1, trackdesign:1, jordan:1, hitmakers:1, ginger:1, bensamama:1, hitsoundlaw:1, gingerpost:1, global2:1, ginger2:1, atm2:1};
   // 카테고리가 freelecture 등으로 따로 잡혀도 이 프로그램들의 무료특강/부속 행사는 늘 한중일 수업이에요.
   var ALWAYS_INTERP_TITLE_RE = /히트메이커스|트랙디자인/;
   // 관리자가 일정 추가/수정에서 "국가"를 직접 골랐으면(x.scope) 카테고리·제목 추측보다 그 값을 우선해요.
@@ -143,7 +146,7 @@
   var NO_REVIEW_RE = /LENNO|레노/;
   // 글로벌 1기(본편·진저브레드/벤사마마 게스트 주차·글로벌 커리어)는 통역자만 있으면 되고 별도 원어민 검수자는 필요 없어요
   // (트랙디자인·조던쇼·히트메이커스·사운드의 법칙·진저브레드 포스트프로덕션은 검수자가 따로 필요하니 그대로 추적).
-  var NO_REVIEW_CATS = {global1:1, ginger:1, bensamama:1, globalcareer:1};
+  var NO_REVIEW_CATS = {global1:1, ginger:1, bensamama:1, globalcareer:1, global2:1, ginger2:1, atm2:1};
   function needsReview(x){ return needsTracking(x) && !NO_REVIEW_RE.test(x.title) && !NO_REVIEW_CATS[x.category]; }
   function hasInt(x){ return Object.keys(x.people).some(function(p){ return x.people[p]==='int'; }); }
   // 신푸른솔 외에 중국은 오하늬·최성륭, 일본은 사츠키·슌타가 들어가 있으면(통역이든 검수든) 그 자체로 원어민 검수가 된 거예요.
