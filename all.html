@@ -79,7 +79,7 @@
 </div>
 
 <script src="sync-status.js"></script>
-<script src="admin.js?v=11"></script>
+<script src="admin.js?v=12"></script>
 <script>
 (function(){
   var PD_IDS = ['michingamsung','heojunho','sinpureunsol','naseongjun','kimseonhwi','syunta','satsuki'];
@@ -189,13 +189,13 @@
   var DOW = ['일','월','화','수','목','금','토'];
   var WINDOW_MIN = 180;
   var PD_HUE = {michingamsung:270, naseongjun:48, heojunho:215, kimseonhwi:0};
-  var SHORT = {michingamsung:'미친', heojunho:'준호', sinpureunsol:'푸른', naseongjun:'성준', kimseonhwi:'선휘', syunta:'슌타', satsuki:'사츠', honomi:'호노', ohani:'오하', kimdohyeon:'도현', seosanghwan:'상환', choiseongryung:'성륭', jordanshow:'조던', charlottewilson:'샬롯', lenno:'레노', hongseokchan:'석찬', sarah:'Sarah', kimyoungbin:'영빈', choihagyeom:'하겸', kimyuchan:'유찬', yasuda:'야스다', heojin:'허진', gingerbread:'진저', moana:'모아나', bensamama:'벤사마마', atm:'ATM'};
+  var SHORT = {michingamsung:'미친', heojunho:'준호', sinpureunsol:'푸른', naseongjun:'성준', kimseonhwi:'선휘', syunta:'슌타', satsuki:'사츠', honomi:'호노', ohani:'오하', kimdohyeon:'도현', seosanghwan:'상환', choiseongryung:'성륭', jordanshow:'조던', charlottewilson:'샬롯', lenno:'레노', hongseokchan:'석찬', sarah:'Sarah', kimyoungbin:'영빈', choihagyeom:'하겸', kimyuchan:'유찬', yasuda:'야스다', heojin:'허진', gingerbread:'진저', moana:'모아나', bensamama:'벤사마마', atm:'ATM', younggwang:'영광'};
   // 해외 게스트 강의자: 항상 맨 위, 눈에 띄는 금색 배지로 표시
   var GUEST_IDS = {jordanshow:1, charlottewilson:1};
   function shortName(id){ return SHORT[id] || (pdName[id]||id).slice(0,2); }
   var PD_GROUPS = [
     {label:'PD', ids:['michingamsung','heojunho','naseongjun','kimseonhwi','kimdohyeon','seosanghwan']},
-    {label:'강의자', ids:['jordanshow','charlottewilson','lenno','hongseokchan','sarah','kimyoungbin','choihagyeom','kimyuchan','yasuda','heojin','gingerbread','bensamama','atm']},
+    {label:'강의자', ids:['jordanshow','charlottewilson','lenno','younggwang','hongseokchan','sarah','kimyoungbin','choihagyeom','kimyuchan','yasuda','heojin','gingerbread','bensamama','atm']},
     {label:'통역자', ids:['sinpureunsol','syunta','satsuki','honomi','ohani','choiseongryung','moana']}
   ];
 
