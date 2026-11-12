@@ -188,6 +188,7 @@ footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--border);font-
 @media (max-width: 480px){.pdchips,.cnote{padding-left:0}}
 .pd-card.all-card{border-color:var(--accent)}
 .pd-card.all-card .name{color:var(--accent)}
+.top-divider{margin:22px 0 0;border-top:1px solid var(--border)}
 
 /* all.html: PD names inside calendar cells */
 .cal-cell.all{aspect-ratio:auto;min-height:84px;justify-content:flex-start;padding:5px 3px 4px}
