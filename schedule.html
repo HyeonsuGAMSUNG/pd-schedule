@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title id="pageTitle">PD 스케쥴</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@700;800;900&family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
-<link rel="stylesheet" href="style.css?v=20261109">
+<link rel="stylesheet" href="style.css?v=20261117">
 </head>
 <body>
 
@@ -169,11 +169,15 @@
       var labelHtml = '';
       var labelSource = blocking.length ? blocking : dayEvents;
       if(labelSource.length){
-        var h = (CATS[labelSource[0].category]||{}).hue;
-        var short = shortLabel(labelSource[0]);
-        var more = labelSource.length>1 ? '+'+(labelSource.length-1) : '';
         var mutedCls = blocking.length ? '' : ' muted';
-        labelHtml = '<span class="lbl'+mutedCls+'" style="--h:'+(h!==undefined?h:0)+'">'+short+more+'</span>';
+        var seenLbl = {}; var lblParts = [];
+        labelSource.forEach(function(e){
+          var short = shortLabel(e);
+          if(seenLbl[short]) return; seenLbl[short] = true;
+          var h = (CATS[e.category]||{}).hue;
+          lblParts.push('<span class="lbl'+mutedCls+'" style="--h:'+(h!==undefined?h:0)+'">'+short+'</span>');
+        });
+        labelHtml = lblParts.length>1 ? '<span class="lbl-stack">'+lblParts.join('')+'</span>' : lblParts[0];
       }
       if(admin.on){ labelHtml = '<span class="apills">'+dayEvents.map(pillHtml).join('')+'</span>'; }
       var dowMini = '<span class="dow-mini">'+DOW[dowOf(ds)]+'</span>';

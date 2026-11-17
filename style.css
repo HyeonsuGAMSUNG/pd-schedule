@@ -91,11 +91,14 @@ header.top{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1p
 @media (prefers-color-scheme: dark){.cal-cell .lbl{color:hsl(var(--h) 65% 72%)}}
 .cal-cell .lbl.muted{color:var(--muted);font-weight:600;opacity:.8}
 .cal-cell .dow-mini{display:none}
+.cal-cell .lbl-stack{display:flex;flex-direction:column;align-items:center;width:100%;margin-top:2px}
+.cal-cell .lbl-stack .lbl{margin-top:0;font-size:.6rem;line-height:1.15}
 
 @media (max-width: 480px){
   .cal-cell{padding:1px}
   .cal-cell .num{font-size:.85rem}
   .cal-cell .lbl{font-size:.52rem;margin-top:1px;letter-spacing:-0.3px}
+  .cal-cell .lbl-stack .lbl{font-size:.46rem}
 }
 
 .day-detail{margin-top:22px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:14px}
