@@ -191,7 +191,7 @@
   var DOW = ['일','월','화','수','목','금','토'];
   var WINDOW_MIN = 180;
   var PD_HUE = {michingamsung:270, naseongjun:48, heojunho:215, kimseonhwi:0};
-  var SHORT = {michinstudio:'작업실', michingamsung:'미친', heojunho:'준호', sinpureunsol:'푸른', naseongjun:'성준', kimseonhwi:'선휘', syunta:'슌타', satsuki:'사츠', honomi:'호노', ohani:'오하', kimdohyeon:'도현', seosanghwan:'상환', choiseongryung:'성륭', jordanshow:'조던', charlottewilson:'샬롯', lenno:'레노', hongseokchan:'석찬', sarah:'Sarah', kimyoungbin:'영빈', choihagyeom:'하겸', kimyuchan:'유찬', yasuda:'야스다', heojin:'허진', gingerbread:'진저', moana:'모아나', bensamama:'벤사마마', atm:'ATM', younggwang:'영광'};
+  var SHORT = {michinstudio:'작업실', heojunhoroom:'준호방', kimseonhwiroom:'선휘방', extstudio:'외부',  michingamsung:'미친', heojunho:'준호', sinpureunsol:'푸른', naseongjun:'성준', kimseonhwi:'선휘', syunta:'슌타', satsuki:'사츠', honomi:'호노', ohani:'오하', kimdohyeon:'도현', seosanghwan:'상환', choiseongryung:'성륭', jordanshow:'조던', charlottewilson:'샬롯', lenno:'레노', hongseokchan:'석찬', sarah:'Sarah', kimyoungbin:'영빈', choihagyeom:'하겸', kimyuchan:'유찬', yasuda:'야스다', heojin:'허진', gingerbread:'진저', moana:'모아나', bensamama:'벤사마마', atm:'ATM', younggwang:'영광'};
   // 해외 게스트 강의자: 항상 맨 위, 눈에 띄는 금색 배지로 표시
   var GUEST_IDS = {jordanshow:1, charlottewilson:1};
   function shortName(id){ return SHORT[id] || (pdName[id]||id).slice(0,2); }
@@ -199,7 +199,7 @@
     {label:'PD', ids:['michingamsung','heojunho','naseongjun','kimseonhwi','kimdohyeon','seosanghwan']},
     {label:'강의자', ids:['jordanshow','charlottewilson','lenno','younggwang','hongseokchan','sarah','kimyoungbin','choihagyeom','kimyuchan','yasuda','heojin','gingerbread','bensamama','atm']},
     {label:'통역자', ids:['sinpureunsol','syunta','satsuki','honomi','ohani','choiseongryung','moana']},
-    {label:'장소', ids:['michinstudio']}
+    {label:'장소', ids:['michinstudio','heojunhoroom','kimseonhwiroom','extstudio']}
   ];
 
   var pds = [];           // [{id,name}]
